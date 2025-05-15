@@ -14,6 +14,12 @@
 
 //   sub umbra alarum suarum
 
+/*	todo
+
+	local function declaration
+
+*/
+
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -29,7 +35,7 @@ struct cu_var_s {
 	uint8_t* name;				//variable name
 	uint8_t name_n;				//name length;
 	
-	uint8_t* val;				//value
+	uint8_t* val;				//value (only for globals)
 	uint8_t* str_t;				//string for custom type
 	uint8_t str_n;				//string length
 };
@@ -54,6 +60,9 @@ struct cu_func_s {
 	
 	struct cu_var_s* var;		//local variables
 	uint64_t var_n;				//number of local variables
+	
+	struct cu_func_s* func;		//local functions
+	uint64_t func_n;			//number of local functions
 	
 	struct cu_op_s* op;			//operations
 	uint64_t op_n;				//number of operations
@@ -331,6 +340,40 @@ uint8_t cu_func_str_cmp(struct cu_func_s* func, uint8_t func_n, uint8_t* str) {
 	return 0;
 }
 
+void cu_var_print(struct cu_var_s* var, uint8_t var_n) {
+	for (uint8_t i = 0; i < var_n; i++) {
+		if (var[i].type == 8) {
+			printf("\tunsigned byte %s\n", var[i].name);
+		}
+		else if (var[i].type == 9) {
+			printf("\tunsigned halfword %s\n", var[i].name);
+		}
+		else if (var[i].type == 10) {
+			printf("\tunsigned word %s\n", var[i].name);
+		}
+		else if (var[i].type == 12) {
+			printf("\tsigned byte %s\n", var[i].name);
+		}
+		else if (var[i].type == 13) {
+			printf("\tsigned halfword %s\n", var[i].name);
+		}
+		else if (var[i].type == 14) {
+			printf("\tsigned word %s\n", var[i].name);
+		}
+	}
+}
+
+void cu_func_print(struct cu_func_s* func, uint8_t func_n) {
+	for (uint8_t i = 0; i < func_n; i++) {
+		printf("function %s with parameters\n", func[i].name);
+		cu_var_print(func[i].para, func[i].para_n);
+		printf("and local variables\n");
+		cu_var_print(func[i].var, func[i].var_n);
+		printf("and local functions\n");
+		cu_func_print(func[i].func, func[i].func_n);
+	}
+}
+
 void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, int8_t* e) {
 	int32_t fd = open(path, O_RDONLY);
     if (fd == -1) {
@@ -360,7 +403,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, int8_t* e) {
 	//4		global declaration (function)
 	//5		global declaration and assignment (function)
 	
-	//6		local declaration (variable)
+	//9		local declaration (variable)
 	
 	struct cu_var_s var[255] = {};			//global variables
 	uint8_t var_n = 0;
@@ -368,7 +411,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, int8_t* e) {
 	uint8_t func_n = 0;
 	
 	for (uint64_t fi = 0; fi < fs.st_size; fi++) {
-		printf("%c, %u, %u\n", fx[fi], mod, key);
+		//printf("%c, %u, %u\n", fx[fi], mod, key);
 		
 		if (((fx[fi] >= 97 && fx[fi] <= 122) || (fx[fi] >= 48 && fx[fi] <= 57)  || (fx[fi] >= 65 && fx[fi] <= 90) || fx[fi] == '_' || fx[fi] == '-') && !c) { //string
 			lex[li] = fx[fi];
@@ -408,7 +451,6 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, int8_t* e) {
 					func[func_n].var[func[func_n].var_n].name_n = strlen(lex);
 					memcpy(func[func_n].var[func[func_n].var_n].name, lex, strlen(lex));
 					key = 0;
-					mod = 6;
 				}
 				else {
 					//error
@@ -458,6 +500,9 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, int8_t* e) {
 					
 					func[func_n].var = malloc(sizeof(struct cu_var_s) * 255);
 					func[func_n].var_n = 0;
+					
+					func[func_n].func = malloc(sizeof(struct cu_func_s) * 255);
+					func[func_n].func_n = 0;
 					
 					key = 0;
 					mod = 3;
@@ -666,70 +711,8 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, int8_t* e) {
 		}
 	}
 	
-	for (uint8_t i = 0; i < var_n; i++) {
-		if (var[i].type == 8) {
-			printf("unsigned byte %s with value of %u\n", var[i].name, *(var[i].val));
-		}
-		else if (var[i].type == 9) {
-			printf("unsigned halfword %s with value of %u\n", var[i].name, *(var[i].val) + ((*(var[i].val + 1) << 8)));
-		}
-		else if (var[i].type == 10) {
-			printf("unsigned word %s with value of %u\n", var[i].name, *(var[i].val) + ((*(var[i].val + 1) << 8)) + ((*(var[i].val + 2) << 16)) + ((*(var[i].val + 3) << 24)));
-		}
-		else if (var[i].type == 12) {
-			printf("signed byte %s with value of %i\n", var[i].name, (int8_t) *(var[i].val));
-		}
-		else if (var[i].type == 13) {
-			printf("signed halfword %s with value of %i\n", var[i].name, (int16_t) (*(var[i].val) + ((*(var[i].val + 1) << 8))));
-		}
-		else if (var[i].type == 14) {
-			printf("signed word %s with value of %i\n", var[i].name, (int32_t) (*(var[i].val) + ((*(var[i].val + 1) << 8)) + ((*(var[i].val + 2) << 16)) + ((*(var[i].val + 3) << 24))));
-		}
-	}
-	for (uint8_t i = 0; i < func_n; i++) {
-		printf("function %s with parameters\n", func[i].name);
-		for (uint8_t j = 0; j < func[i].para_n; j++) {
-			if (func[i].para[j].type == 8) {
-				printf("\tunsigned byte %s\n", func[i].para[j].name);
-			}
-			else if (func[i].para[j].type == 9) {
-				printf("\tunsigned halfword %s\n", func[i].para[j].name);
-			}
-			else if (func[i].para[j].type == 10) {
-				printf("\tunsigned word %s\n", func[i].para[j].name);
-			}
-			else if (func[i].para[j].type == 12) {
-				printf("\tsigned byte %s\n", func[i].para[j].name);
-			}
-			else if (func[i].para[j].type == 13) {
-				printf("\tsigned halfword %s\n", func[i].para[j].name);
-			}
-			else if (func[i].para[j].type == 14) {
-				printf("\tsigned word %s\n", func[i].para[j].name);
-			}
-		}
-		printf("and local variables\n");
-		for (uint8_t j = 0; j < func[i].var_n; j++) {
-			if (func[i].var[j].type == 8) {
-				printf("\tunsigned byte %s\n", func[i].var[j].name);
-			}
-			else if (func[i].var[j].type == 9) {
-				printf("\tunsigned halfword %s\n", func[i].var[j].name);
-			}
-			else if (func[i].var[j].type == 10) {
-				printf("\tunsigned word %s\n", func[i].var[j].name);
-			}
-			else if (func[i].var[j].type == 12) {
-				printf("\tsigned byte %s\n", func[i].var[j].name);
-			}
-			else if (func[i].var[j].type == 13) {
-				printf("\tsigned halfword %s\n", func[i].var[j].name);
-			}
-			else if (func[i].var[j].type == 14) {
-				printf("\tsigned word %s\n", func[i].var[j].name);
-			}
-		}
-	}
+	cu_var_print(var, var_n);
+	cu_func_print(func, func_n);
 	
 	munmap(fx, fs.st_size);
 }
