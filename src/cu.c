@@ -52,8 +52,8 @@ struct cu_func_s {
 	struct cu_var_s* para;		//parameters
 	uint8_t para_n;				//number of parameters
 	
-	struct cu_var_s* scope;		//scope
-	uint64_t scope_n;			//number of parameters
+	struct cu_var_s* var;		//local variables
+	uint64_t var_n;				//number of local variables
 	
 	struct cu_op_s* op;			//operations
 	uint64_t op_n;				//number of operations
@@ -361,21 +361,14 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, int8_t* e) {
 	//5		global declaration and assignment (function)
 	
 	//6		local declaration (variable)
-	//7		local assignment (variable)
-	//8		local declaration and assignment (variable)
-	//9		local declaration (function)
-	//10	local assignment (function)
-	//11	local declaration and assignment (function)
 	
 	struct cu_var_s var[255] = {};			//global variables
 	uint8_t var_n = 0;
 	struct cu_func_s func[255] = {};		//functions
 	uint8_t func_n = 0;
-	struct cu_var_s para[255] = {};			//function parameters
-	uint8_t para_n = 0;
 	
 	for (uint64_t fi = 0; fi < fs.st_size; fi++) {
-		//printf("%c, %u, %u\n", fx[fi], mod, key);
+		printf("%c, %u, %u\n", fx[fi], mod, key);
 		
 		if (((fx[fi] >= 97 && fx[fi] <= 122) || (fx[fi] >= 48 && fx[fi] <= 57)  || (fx[fi] >= 65 && fx[fi] <= 90) || fx[fi] == '_' || fx[fi] == '-') && !c) { //string
 			lex[li] = fx[fi];
@@ -408,7 +401,20 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, int8_t* e) {
 					//error
 				}
 			}
-			else if (mod == 0 || mod == 3) {
+			else if (mod == 5 && key) {
+				if (!cu_var_str_cmp(var, var_n, lex)) {
+					func[func_n].var[func[func_n].var_n].type = key;
+					func[func_n].var[func[func_n].var_n].name = malloc(strlen(lex));
+					func[func_n].var[func[func_n].var_n].name_n = strlen(lex);
+					memcpy(func[func_n].var[func[func_n].var_n].name, lex, strlen(lex));
+					key = 0;
+					mod = 6;
+				}
+				else {
+					//error
+				}
+			}
+			else if (mod == 0 || mod == 3 || mod == 5) {
 				key = cu_str_key(lex);
 			}
 			else {
@@ -420,12 +426,12 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, int8_t* e) {
 		}
 		else if ((fx[fi] == ',') && li && !c) { 						//next string (parameter)
 			if (mod == 3 && key) {
-				if (!cu_var_str_cmp(para, para_n, lex)) {
-					para[para_n].type = key;
-					para[para_n].name = malloc(strlen(lex));
-					para[para_n].name_n = strlen(lex);
-					memcpy(para[para_n].name, lex, strlen(lex));
-					para_n = para_n + 1;
+				if (!cu_var_str_cmp(func[func_n].para, func[func_n].para_n, lex)) {
+					func[func_n].para[func[func_n].para_n].type = key;
+					func[func_n].para[func[func_n].para_n].name = malloc(strlen(lex));
+					func[func_n].para[func[func_n].para_n].name_n = strlen(lex);
+					memcpy(func[func_n].para[func[func_n].para_n].name, lex, strlen(lex));
+					func[func_n].para_n = func[func_n].para_n + 1;
 					key = 0;
 				}
 				else {
@@ -446,6 +452,13 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, int8_t* e) {
 					func[func_n].name = malloc(strlen(lex));
 					func[func_n].name_n = strlen(lex);
 					memcpy(func[func_n].name, lex, strlen(lex));
+					
+					func[func_n].para = malloc(sizeof(struct cu_var_s) * 255);
+					func[func_n].para_n = 0;
+					
+					func[func_n].var = malloc(sizeof(struct cu_var_s) * 255);
+					func[func_n].var_n = 0;
+					
 					key = 0;
 					mod = 3;
 				}
@@ -462,16 +475,12 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, int8_t* e) {
 		}
 		else if ((fx[fi] == ')') && !c) { 								//next string
 			if (mod == 3 && key) {										//end function parameters
-				if (!cu_var_str_cmp(para, para_n, lex)) {
-					para[para_n].type = key;
-					para[para_n].name = malloc(strlen(lex));
-					para[para_n].name_n = strlen(lex);
-					memcpy(para[para_n].name, lex, strlen(lex));
-					para_n = para_n + 1;
-					
-					func[func_n].para = malloc(sizeof(struct cu_var_s) * para_n);
-					func[func_n].para_n = para_n;
-					memcpy(func[func_n].para, para, sizeof(struct cu_var_s) * para_n);
+				if (!cu_var_str_cmp(func[func_n].para, func[func_n].para_n, lex)) {
+					func[func_n].para[func[func_n].para_n].type = key;
+					func[func_n].para[func[func_n].para_n].name = malloc(strlen(lex));
+					func[func_n].para[func[func_n].para_n].name_n = strlen(lex);
+					memcpy(func[func_n].para[func[func_n].para_n].name, lex, strlen(lex));
+					func[func_n].para_n = func[func_n].para_n + 1;
 					
 					key = 0;
 					mod = 4;
@@ -481,9 +490,6 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, int8_t* e) {
 				}
 			}
 			else if (mod == 3) {
-				func[func_n].para = malloc(sizeof(struct cu_var_s) * para_n);
-				func[func_n].para_n = para_n;
-				memcpy(func[func_n].para, para, sizeof(struct cu_var_s) * para_n);
 				mod = 4;
 			}
 			else {
@@ -612,12 +618,17 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, int8_t* e) {
 				mod = 0;
 			}
 			else if (mod == 4) {
-				func[func_n].para = malloc(sizeof(struct cu_var_s) * para_n);
-				func[func_n].para_n = para_n;
-				memcpy(func[func_n].para, para, sizeof(struct cu_var_s) * para_n);
 				func_n = func_n + 1;
-				para_n = 0;
 				mod = 0;
+			}
+			else if (mod == 5) {
+				func[func_n].var[func[func_n].var_n].type = key;
+				func[func_n].var[func[func_n].var_n].name = malloc(strlen(lex));
+				func[func_n].var[func[func_n].var_n].name_n = strlen(lex);
+				memcpy(func[func_n].var[func[func_n].var_n].name, lex, strlen(lex));
+				func[func_n].var_n = func[func_n].var_n + 1;
+				key = 0;
+				mod = 5;
 			}
 			else if (key == 0) {
 				key = cu_str_key(lex); //single keywords
@@ -695,6 +706,27 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, int8_t* e) {
 			}
 			else if (func[i].para[j].type == 14) {
 				printf("\tsigned word %s\n", func[i].para[j].name);
+			}
+		}
+		printf("and local variables\n");
+		for (uint8_t j = 0; j < func[i].var_n; j++) {
+			if (func[i].var[j].type == 8) {
+				printf("\tunsigned byte %s\n", func[i].var[j].name);
+			}
+			else if (func[i].var[j].type == 9) {
+				printf("\tunsigned halfword %s\n", func[i].var[j].name);
+			}
+			else if (func[i].var[j].type == 10) {
+				printf("\tunsigned word %s\n", func[i].var[j].name);
+			}
+			else if (func[i].var[j].type == 12) {
+				printf("\tsigned byte %s\n", func[i].var[j].name);
+			}
+			else if (func[i].var[j].type == 13) {
+				printf("\tsigned halfword %s\n", func[i].var[j].name);
+			}
+			else if (func[i].var[j].type == 14) {
+				printf("\tsigned word %s\n", func[i].var[j].name);
 			}
 		}
 	}
