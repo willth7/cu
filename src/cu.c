@@ -17,6 +17,8 @@
 /*	todo
 
 	local function declaration
+	hierachy of scope
+		need to be able to access variables from higher scope
 
 */
 
@@ -34,26 +36,12 @@ struct cu_var_s {
 	uint8_t type;				//variable type
 	uint8_t* name;				//variable name
 	uint8_t name_n;				//name length;
-	
-	uint8_t* val;				//value (only for globals)
-	uint8_t* str_t;				//string for custom type
-	uint8_t str_n;				//string length
-};
-
-struct cu_op_s {
-	uint8_t type;				//operation type
-	uint64_t src;				//operand source
-	uint64_t dest;				//operand destination
-	struct cu_var_s imm;		//immediate
 };
 
 struct cu_func_s {
 	uint8_t type;				//return type
 	uint8_t* name;				//function name
 	uint8_t name_n;				//name length;
-	
-	uint8_t* str_t;				//string for custom type
-	uint8_t str_n;				//string length
 	
 	struct cu_var_s* para;		//parameters
 	uint8_t para_n;				//number of parameters
@@ -63,9 +51,6 @@ struct cu_func_s {
 	
 	struct cu_func_s* func;		//local functions
 	uint64_t func_n;			//number of local functions
-	
-	struct cu_op_s* op;			//operations
-	uint64_t op_n;				//number of operations
 };
 
 uint64_t cu_str_int_dec(int8_t* a, int8_t* e, int8_t* path, uint64_t ln) {
@@ -403,12 +388,20 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, int8_t* e) {
 	//4		global declaration (function)
 	//5		global declaration and assignment (function)
 	
-	//9		local declaration (variable)
+	//0		higher scope
+	//1		global declaration (variable)
+	//2		function parameter declaration
+	//3		global declaration (function)
+	
+	//4		lower scope
 	
 	struct cu_var_s var[255] = {};			//global variables
 	uint8_t var_n = 0;
 	struct cu_func_s func[255] = {};		//functions
 	uint8_t func_n = 0;
+	
+	struct cu_func_s scop[255] = {};
+	uint8_t scop_n = 0;
 	
 	for (uint64_t fi = 0; fi < fs.st_size; fi++) {
 		//printf("%c, %u, %u\n", fx[fi], mod, key);
@@ -444,7 +437,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, int8_t* e) {
 					//error
 				}
 			}
-			else if (mod == 5 && key) {
+			else if (mod == 4 && key) {
 				if (!cu_var_str_cmp(var, var_n, lex)) {
 					func[func_n].var[func[func_n].var_n].type = key;
 					func[func_n].var[func[func_n].var_n].name = malloc(strlen(lex));
@@ -456,7 +449,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, int8_t* e) {
 					//error
 				}
 			}
-			else if (mod == 0 || mod == 3 || mod == 5) {
+			else if (mod == 0 || mod == 2 || mod == 4) {
 				key = cu_str_key(lex);
 			}
 			else {
@@ -467,7 +460,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, int8_t* e) {
 			li = 0;
 		}
 		else if ((fx[fi] == ',') && li && !c) { 						//next string (parameter)
-			if (mod == 3 && key) {
+			if (mod == 2 && key) {
 				if (!cu_var_str_cmp(func[func_n].para, func[func_n].para_n, lex)) {
 					func[func_n].para[func[func_n].para_n].type = key;
 					func[func_n].para[func[func_n].para_n].name = malloc(strlen(lex));
@@ -505,7 +498,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, int8_t* e) {
 					func[func_n].func_n = 0;
 					
 					key = 0;
-					mod = 3;
+					mod = 2;
 				}
 				else {
 					//error
@@ -519,7 +512,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, int8_t* e) {
 			li = 0;
 		}
 		else if ((fx[fi] == ')') && !c) { 								//next string
-			if (mod == 3 && key) {										//end function parameters
+			if (mod == 2 && key) {										//end function parameters
 				if (!cu_var_str_cmp(func[func_n].para, func[func_n].para_n, lex)) {
 					func[func_n].para[func[func_n].para_n].type = key;
 					func[func_n].para[func[func_n].para_n].name = malloc(strlen(lex));
@@ -528,14 +521,14 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, int8_t* e) {
 					func[func_n].para_n = func[func_n].para_n + 1;
 					
 					key = 0;
-					mod = 4;
+					mod = 3;
 				}
 				else {
 					//error
 				}
 			}
-			else if (mod == 3) {
-				mod = 4;
+			else if (mod == 2) {
+				mod = 3;
 			}
 			else {
 				//error
@@ -545,8 +538,8 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, int8_t* e) {
 			li = 0;
 		}
 		else if ((fx[fi] == '{') && !c) { //next string (begin function content)
-			if (mod == 4) {
-				mod = 5;
+			if (mod == 3) {
+				mod = 4;
 			}
 			else {
 				//error
@@ -556,7 +549,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, int8_t* e) {
 			li = 0;
 		}
 		else if ((fx[fi] == '}') && !c) { //next string (end function content)
-			if (mod == 5) {
+			if (mod == 4) {
 				func_n = func_n + 1;
 				mod = 0;
 			}
@@ -573,107 +566,22 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, int8_t* e) {
 				var[var_n].name = malloc(strlen(lex));
 				var[var_n].name_n = strlen(lex);
 				memcpy(var[var_n].name, lex, strlen(lex));
+				var_n = var_n + 1;
 				key = 0;
-				
-				if (var[var_n].type == 8) {
-					var[var_n].val = malloc(1);
-					uint8_t val = 0;
-					memcpy(var[var_n].val, &val, 1);
-				}
-				else if (var[var_n].type == 9) {
-					var[var_n].val = malloc(2);
-					uint16_t val = 0;
-					memcpy(var[var_n].val, &val, 2);
-				}
-				else if (var[var_n].type == 10) {
-					var[var_n].val = malloc(3);
-					uint32_t val = 0;
-					memcpy(var[var_n].val, &val, 3);
-				}
-				else if (var[var_n].type == 11) {
-					var[var_n].val = malloc(4);
-					uint64_t val = 0;
-					memcpy(var[var_n].val, &val, 4);
-				}
-				else if (var[var_n].type == 12) {
-					var[var_n].val = malloc(1);
-					int8_t val = 0;
-					memcpy(var[var_n].val, &val, 1);
-				}
-				else if (var[var_n].type == 13) {
-					var[var_n].val = malloc(2);
-					int16_t val = 0;
-					memcpy(var[var_n].val, &val, 2);
-				}
-				else if (var[var_n].type == 14) {
-					var[var_n].val = malloc(3);
-					int32_t val = 0;
-					memcpy(var[var_n].val, &val, 3);
-				}
-				else if (var[var_n].type == 15) {
-					var[var_n].val = malloc(4);
-					int64_t val = 0;
-					memcpy(var[var_n].val, &val, 4);
-				}
-				var_n = var_n + 1;
 				mod = 0;
 			}
-			else if (mod == 2) {
-				if (var[var_n].type == 8) {
-					var[var_n].val = malloc(1);
-					uint8_t val = cu_str_int_dec(lex, e, path, ln);
-					memcpy(var[var_n].val, &val, 1);
-				}
-				else if (var[var_n].type == 9) {
-					var[var_n].val = malloc(2);
-					uint16_t val = cu_str_int_dec(lex, e, path, ln);
-					memcpy(var[var_n].val, &val, 2);
-				}
-				else if (var[var_n].type == 10) {
-					var[var_n].val = malloc(3);
-					uint32_t val = cu_str_int_dec(lex, e, path, ln);
-					memcpy(var[var_n].val, &val, 3);
-				}
-				else if (var[var_n].type == 11) {
-					var[var_n].val = malloc(4);
-					uint64_t val = cu_str_int_dec(lex, e, path, ln);
-					memcpy(var[var_n].val, &val, 4);
-				}
-				else if (var[var_n].type == 12) {
-					var[var_n].val = malloc(1);
-					int8_t val = cu_str_int_dec(lex, e, path, ln);
-					memcpy(var[var_n].val, &val, 1);
-				}
-				else if (var[var_n].type == 13) {
-					var[var_n].val = malloc(2);
-					int16_t val = cu_str_int_dec(lex, e, path, ln);
-					memcpy(var[var_n].val, &val, 2);
-				}
-				else if (var[var_n].type == 14) {
-					var[var_n].val = malloc(3);
-					int32_t val = cu_str_int_dec(lex, e, path, ln);
-					memcpy(var[var_n].val, &val, 3);
-				}
-				else if (var[var_n].type == 15) {
-					var[var_n].val = malloc(4);
-					int64_t val = cu_str_int_dec(lex, e, path, ln);
-					memcpy(var[var_n].val, &val, 4);
-				}
-				var_n = var_n + 1;
-				mod = 0;
-			}
-			else if (mod == 4) {
+			else if (mod == 3) {
 				func_n = func_n + 1;
 				mod = 0;
 			}
-			else if (mod == 5) {
+			else if (mod == 4) {
 				func[func_n].var[func[func_n].var_n].type = key;
 				func[func_n].var[func[func_n].var_n].name = malloc(strlen(lex));
 				func[func_n].var[func[func_n].var_n].name_n = strlen(lex);
 				memcpy(func[func_n].var[func[func_n].var_n].name, lex, strlen(lex));
 				func[func_n].var_n = func[func_n].var_n + 1;
 				key = 0;
-				mod = 5;
+				mod = 4;
 			}
 			else if (key == 0) {
 				key = cu_str_key(lex); //single keywords
@@ -686,12 +594,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, int8_t* e) {
 			li = 0;
 		}
 		else if ((fx[fi] == '=') && !c) {
-			if (mod == 1) {
-				mod = 2;
-			}
-			else {
-				//error
-			}
+			
 		}
 		else if (fx[fi] == '/' && fx[fi + 1] == '/') { //line comment
 			c = 1;
