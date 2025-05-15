@@ -388,14 +388,15 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, int8_t* e) {
 	
 	//4		lower scope
 	
-	struct cu_func_s scop[255] = {};
+	struct cu_func_s* scop[255] = {};
+	scop[0] = malloc(sizeof(struct cu_func_s));
 	uint8_t indx = 0;
 	
-	scop[0].para_n = 0;
-	scop[0].var_n = 0;
-	scop[0].var = malloc(sizeof(struct cu_var_s) * 255);	//global variables
-	scop[0].func_n = 0;
-	scop[0].func = malloc(sizeof(struct cu_func_s) * 255);	//global functions
+	scop[0]->para_n = 0;
+	scop[0]->var_n = 0;
+	scop[0]->var = malloc(sizeof(struct cu_var_s) * 255);	//global variables
+	scop[0]->func_n = 0;
+	scop[0]->func = malloc(sizeof(struct cu_func_s) * 255);	//global functions
 	
 	for (uint64_t fi = 0; fi < fs.st_size; fi++) {
 		//printf("%c, %u, %u\n", fx[fi], mod, key);
@@ -419,11 +420,11 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, int8_t* e) {
 		}
 		else if ((fx[fi] == ' ') && li && !c) { 					//next string
 			if (mod == 0 && key) {
-				if (!cu_var_str_cmp(scop[indx].var, scop[indx].var_n, lex)) {
-					scop[indx].var[scop[indx].var_n].type = key;
-					scop[indx].var[scop[indx].var_n].name = malloc(strlen(lex));
-					scop[indx].var[scop[indx].var_n].name_n = strlen(lex);
-					memcpy(scop[indx].var[scop[indx].var_n].name, lex, strlen(lex));
+				if (!cu_var_str_cmp(scop[indx]->var, scop[indx]->var_n, lex)) {
+					scop[indx]->var[scop[indx]->var_n].type = key;
+					scop[indx]->var[scop[indx]->var_n].name = malloc(strlen(lex));
+					scop[indx]->var[scop[indx]->var_n].name_n = strlen(lex);
+					memcpy(scop[indx]->var[scop[indx]->var_n].name, lex, strlen(lex));
 					key = 0;
 					mod = 1;
 				}
@@ -443,12 +444,12 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, int8_t* e) {
 		}
 		else if ((fx[fi] == ',') && li && !c) { 						//next string (parameter)
 			if (mod == 2 && key) {
-				if (!cu_var_str_cmp(scop[indx].func[scop[indx].func_n].para, scop[indx].func[scop[indx].func_n].para_n, lex)) {
-					scop[indx].func[scop[indx].func_n].para[scop[indx].func[scop[indx].func_n].para_n].type = key;
-					scop[indx].func[scop[indx].func_n].para[scop[indx].func[scop[indx].func_n].para_n].name = malloc(strlen(lex));
-					scop[indx].func[scop[indx].func_n].para[scop[indx].func[scop[indx].func_n].para_n].name_n = strlen(lex);
-					memcpy(scop[indx].func[scop[indx].func_n].para[scop[indx].func[scop[indx].func_n].para_n].name, lex, strlen(lex));
-					scop[indx].func[scop[indx].func_n].para_n = scop[indx].func[scop[indx].func_n].para_n + 1;
+				if (!cu_var_str_cmp(scop[indx]->func[scop[indx]->func_n].para, scop[indx]->func[scop[indx]->func_n].para_n, lex)) {
+					scop[indx]->func[scop[indx]->func_n].para[scop[indx]->func[scop[indx]->func_n].para_n].type = key;
+					scop[indx]->func[scop[indx]->func_n].para[scop[indx]->func[scop[indx]->func_n].para_n].name = malloc(strlen(lex));
+					scop[indx]->func[scop[indx]->func_n].para[scop[indx]->func[scop[indx]->func_n].para_n].name_n = strlen(lex);
+					memcpy(scop[indx]->func[scop[indx]->func_n].para[scop[indx]->func[scop[indx]->func_n].para_n].name, lex, strlen(lex));
+					scop[indx]->func[scop[indx]->func_n].para_n = scop[indx]->func[scop[indx]->func_n].para_n + 1;
 					key = 0;
 				}
 				else {
@@ -464,20 +465,20 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, int8_t* e) {
 		}
 		else if ((fx[fi] == '(') && !c) {								//next string
 			if (mod == 0 && li && key) {								//begin function parameters
-				if (!cu_var_str_cmp(scop[indx].func[scop[indx].func_n].para, scop[indx].func[scop[indx].func_n].para_n, lex)) {
-					scop[indx].func[scop[indx].func_n].type = key;
-					scop[indx].func[scop[indx].func_n].name = malloc(strlen(lex));
-					scop[indx].func[scop[indx].func_n].name_n = strlen(lex);
-					memcpy(scop[indx].func[scop[indx].func_n].name, lex, strlen(lex));
+				if (!cu_var_str_cmp(scop[indx]->func[scop[indx]->func_n].para, scop[indx]->func[scop[indx]->func_n].para_n, lex)) {
+					scop[indx]->func[scop[indx]->func_n].type = key;
+					scop[indx]->func[scop[indx]->func_n].name = malloc(strlen(lex));
+					scop[indx]->func[scop[indx]->func_n].name_n = strlen(lex);
+					memcpy(scop[indx]->func[scop[indx]->func_n].name, lex, strlen(lex));
 					
-					scop[indx].func[scop[indx].func_n].para = malloc(sizeof(struct cu_var_s) * 255);
-					scop[indx].func[scop[indx].func_n].para_n = 0;
+					scop[indx]->func[scop[indx]->func_n].para = malloc(sizeof(struct cu_var_s) * 255);
+					scop[indx]->func[scop[indx]->func_n].para_n = 0;
 					
-					scop[indx].func[scop[indx].func_n].var = malloc(sizeof(struct cu_var_s) * 255);
-					scop[indx].func[scop[indx].func_n].var_n = 0;
+					scop[indx]->func[scop[indx]->func_n].var = malloc(sizeof(struct cu_var_s) * 255);
+					scop[indx]->func[scop[indx]->func_n].var_n = 0;
 					
-					scop[indx].func[scop[indx].func_n].func = malloc(sizeof(struct cu_func_s) * 255);
-					scop[indx].func[scop[indx].func_n].func_n = 0;
+					scop[indx]->func[scop[indx]->func_n].func = malloc(sizeof(struct cu_func_s) * 255);
+					scop[indx]->func[scop[indx]->func_n].func_n = 0;
 					
 					key = 0;
 					mod = 2;
@@ -495,12 +496,12 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, int8_t* e) {
 		}
 		else if ((fx[fi] == ')') && !c) { 								//next string
 			if (mod == 2 && key) {										//end function parameters
-				if (!cu_var_str_cmp(scop[indx].func[scop[indx].func_n].para, scop[indx].func[scop[indx].func_n].para_n, lex)) {
-					scop[indx].func[scop[indx].func_n].para[scop[indx].func[scop[indx].func_n].para_n].type = key;
-					scop[indx].func[scop[indx].func_n].para[scop[indx].func[scop[indx].func_n].para_n].name = malloc(strlen(lex));
-					scop[indx].func[scop[indx].func_n].para[scop[indx].func[scop[indx].func_n].para_n].name_n = strlen(lex);
-					memcpy(scop[indx].func[scop[indx].func_n].para[scop[indx].func[scop[indx].func_n].para_n].name, lex, strlen(lex));
-					scop[indx].func[scop[indx].func_n].para_n = scop[indx].func[scop[indx].func_n].para_n + 1;
+				if (!cu_var_str_cmp(scop[indx]->func[scop[indx]->func_n].para, scop[indx]->func[scop[indx]->func_n].para_n, lex)) {
+					scop[indx]->func[scop[indx]->func_n].para[scop[indx]->func[scop[indx]->func_n].para_n].type = key;
+					scop[indx]->func[scop[indx]->func_n].para[scop[indx]->func[scop[indx]->func_n].para_n].name = malloc(strlen(lex));
+					scop[indx]->func[scop[indx]->func_n].para[scop[indx]->func[scop[indx]->func_n].para_n].name_n = strlen(lex);
+					memcpy(scop[indx]->func[scop[indx]->func_n].para[scop[indx]->func[scop[indx]->func_n].para_n].name, lex, strlen(lex));
+					scop[indx]->func[scop[indx]->func_n].para_n = scop[indx]->func[scop[indx]->func_n].para_n + 1;
 					
 					key = 0;
 					mod = 3;
@@ -519,9 +520,11 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, int8_t* e) {
 			lex[0] = 0;
 			li = 0;
 		}
-		/*else if ((fx[fi] == '{') && !c) { //next string (begin function content)
+		else if ((fx[fi] == '{') && !c) { //next string (begin function content)
 			if (mod == 3) {
-				mod = 4;
+				scop[indx + 1] = &(scop[indx]->func[scop[indx]->func_n]);
+				indx = indx + 1;
+				mod = 0;
 			}
 			else {
 				//error
@@ -531,9 +534,9 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, int8_t* e) {
 			li = 0;
 		}
 		else if ((fx[fi] == '}') && !c) { //next string (end function content)
-			if (mod == 4) {
-				func_n = func_n + 1;
-				mod = 0;
+			if (mod == 0) {
+				indx = indx - 1;
+				scop[indx]->func_n = scop[indx]->func_n + 1;
 			}
 			else {
 				//error
@@ -541,19 +544,19 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, int8_t* e) {
 			
 			lex[0] = 0;
 			li = 0;
-		}*/
+		}
 		else if ((fx[fi] == ';') && !c) {
 			if (mod == 0) {
-				scop[indx].var[scop[indx].var_n].type = key;
-				scop[indx].var[scop[indx].var_n].name = malloc(strlen(lex));
-				scop[indx].var[scop[indx].var_n].name_n = strlen(lex);
-				memcpy(scop[indx].var[scop[indx].var_n].name, lex, strlen(lex));
-				scop[indx].var_n = scop[indx].var_n + 1;
+				scop[indx]->var[scop[indx]->var_n].type = key;
+				scop[indx]->var[scop[indx]->var_n].name = malloc(strlen(lex));
+				scop[indx]->var[scop[indx]->var_n].name_n = strlen(lex);
+				memcpy(scop[indx]->var[scop[indx]->var_n].name, lex, strlen(lex));
+				scop[indx]->var_n = scop[indx]->var_n + 1;
 				key = 0;
 				mod = 0;
 			}
 			else if (mod == 3) {
-				scop[indx].func_n = scop[indx].func_n + 1;
+				scop[indx]->func_n = scop[indx]->func_n + 1;
 				mod = 0;
 			}
 			/*else if (mod == 4) {
@@ -596,8 +599,8 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, int8_t* e) {
 		}
 	}
 	
-	cu_var_print(scop[indx].var, scop[indx].var_n);
-	cu_func_print(scop[indx].func, scop[indx].func_n);
+	cu_var_print(scop[indx]->var, scop[indx]->var_n);
+	cu_func_print(scop[indx]->func, scop[indx]->func_n);
 	
 	munmap(fx, fs.st_size);
 }
