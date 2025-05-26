@@ -22,6 +22,12 @@
 
 */
 
+/*	notes
+
+	are ifs, elses, and whiles not just just functions with a single parameter, the condition?
+
+*/
+
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -35,13 +41,15 @@
 struct cu_var_s {
 	uint8_t type;				//variable type
 	uint8_t* name;				//variable name
-	uint8_t name_n;				//name length;
+	uint8_t name_n;				//name length
 };
+
+struct cu_op_s;
 
 struct cu_func_s {
 	uint8_t type;				//return type
 	uint8_t* name;				//function name
-	uint8_t name_n;				//name length;
+	uint8_t name_n;				//name length
 	
 	struct cu_var_s* para;		//parameters
 	uint8_t para_n;				//number of parameters
@@ -51,7 +59,82 @@ struct cu_func_s {
 	
 	struct cu_func_s* func;		//local functions
 	uint64_t func_n;			//number of local functions
+	
+	struct cu_op_s* op;			//operations
+	uint64_t op_n;				//number of operations
 };
+
+struct cu_op_s {
+	uint8_t type;				//operation type
+	
+	struct cu_func_s* dst_scop;	//scope for destination variable
+	uint64_t dst_indx;			//index for destination variable
+	uint8_t dst_type;			//0 for variable, 1 for parameter, 2 for function
+	
+	struct cu_func_s* src_scop;	//scope for source variable
+	uint64_t src_indx;			//index for source variable
+	uint8_t src_type;			//0 for variable, 1 for parameter, 2 for function, 3 for immediate
+	uint64_t src_imm;			//immediate
+};
+
+/*	operation types
+
+	0	null
+	
+	1	declare 1 byte
+	2	declare 2 bytes
+	3	declare 4 bytes
+	4	declare 8 bytes
+	
+	5	move 1 byte
+	6	move 2 bytes
+	7	move 4 bytes
+	8	move 8 bytes
+	
+	9	call					//function out of scope
+	10	branch					//function in scope
+	
+	11	add
+	12	subtract
+	
+	13	bitwise not
+	14	bitwise and
+	15	bitwise or
+	16	bitwise exclusive or
+	17	bitwise left shift
+	18	bitwise right shift
+	
+	19	logical not
+	20	logical and
+	21	logical or
+	22	logical equal to
+	23	logical greater than
+	24	logical less than
+	25	logical greater than or equal to
+	26	logical less than or equal to
+	
+	27	multiply
+	28	divide
+	29	modulo
+
+*/
+
+/*	operation classes
+
+	declaration (move stack pointer for memory)
+		the compiler must keep track of this variable independently from the order in which it is declared
+	
+	assignment (move something to something)
+		the compiler doesn't care what is being assigned in itself, only from whom to whom
+		
+	binary operations (do something to something)
+		this can be nested, and must be, within an assignment
+	
+	function calling (jump to code, parameters in tow)
+		the compiler must keep track that all parameters are given, no more, no less
+		"assigning" value to parameters?
+		
+*/
 
 uint64_t cu_str_int_dec(int8_t* a, int8_t* e, int8_t* path, uint64_t ln) {
 	uint64_t b = 0;
@@ -158,34 +241,30 @@ uint64_t cu_str_int_hex(int8_t* a, int8_t* e, int8_t* path, uint64_t ln) {
 }
 
 uint8_t cu_str_key(uint8_t* str) {
-	if (!strcmp(str, "void")) {
+	if (!strcmp(str, "uint8_t")) {
 		return 1;
 	}
-	
-	else if (!strcmp(str, "uint8_t")) {
-		return 8;
-	}
 	else if (!strcmp(str, "uint16_t")) {
-		return 9;
+		return 2;
 	}
 	else if (!strcmp(str, "uint32_t")) {
-		return 10;
+		return 3;
 	}
 	else if (!strcmp(str, "uin64_t")) {
-		return 11;
+		return 4;
 	}
 	
 	else if (!strcmp(str, "int8_t")) {
-		return 12;
+		return 5;
 	}
 	else if (!strcmp(str, "int16_t")) {
-		return 13;
+		return 6;
 	}
 	else if (!strcmp(str, "int32_t")) {
-		return 14;
+		return 7;
 	}
 	else if (!strcmp(str, "int64_t")) {
-		return 15;
+		return 8;
 	}
 	
 	else if (!strcmp(str, "uint8_t*")) {
@@ -212,6 +291,10 @@ uint8_t cu_str_key(uint8_t* str) {
 	}
 	else if (!strcmp(str, "int64_t*")) {
 		return 23;
+	}
+	
+	else if (!strcmp(str, "void")) {
+		return 24;
 	}
 	
 	else if (!strcmp(str, "if")) {
@@ -310,7 +393,7 @@ uint8_t cu_str_op(uint8_t* str) {
 uint8_t cu_var_str_cmp(struct cu_var_s* var, uint8_t var_n, uint8_t* str) {
 	for (uint8_t i = 0; i < var_n; i++) {
 		if (!strcmp(var[i].name, str)) {
-			return 1;
+			return i + 1;
 		}
 	}
 	return 0;
@@ -327,24 +410,30 @@ uint8_t cu_func_str_cmp(struct cu_func_s* func, uint8_t func_n, uint8_t* str) {
 
 void cu_var_print(struct cu_var_s* var, uint8_t var_n) {
 	for (uint8_t i = 0; i < var_n; i++) {
-		if (var[i].type == 8) {
+		if (var[i].type == 1) {
 			printf("\tunsigned byte %s\n", var[i].name);
 		}
-		else if (var[i].type == 9) {
+		else if (var[i].type == 2) {
 			printf("\tunsigned halfword %s\n", var[i].name);
 		}
-		else if (var[i].type == 10) {
+		else if (var[i].type == 3) {
 			printf("\tunsigned word %s\n", var[i].name);
 		}
-		else if (var[i].type == 12) {
+		else if (var[i].type == 5) {
 			printf("\tsigned byte %s\n", var[i].name);
 		}
-		else if (var[i].type == 13) {
+		else if (var[i].type == 6) {
 			printf("\tsigned halfword %s\n", var[i].name);
 		}
-		else if (var[i].type == 14) {
+		else if (var[i].type == 7) {
 			printf("\tsigned word %s\n", var[i].name);
 		}
+	}
+}
+
+void cu_op_print(struct cu_op_s* op, uint8_t op_n) {
+	for (uint8_t i = 0; i < op_n; i++) {
+		printf("type %u, \n", op[i].type);
 	}
 }
 
@@ -356,10 +445,12 @@ void cu_func_print(struct cu_func_s* func, uint8_t func_n) {
 		cu_var_print(func[i].var, func[i].var_n);
 		printf("and local functions\n");
 		cu_func_print(func[i].func, func[i].func_n);
+		printf("\n");
+		cu_op_print(func[i].op, func[i].op_n);
 	}
 }
 
-void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, int8_t* e) {
+void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, int8_t* e, uint8_t addr_len) {
 	int32_t fd = open(path, O_RDONLY);
     if (fd == -1) {
         printf("error: failed to open file '%s'\n", path);
@@ -381,10 +472,17 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, int8_t* e) {
 	uint8_t mod = 0;		//current mode
 	uint8_t key = 0;		//current keyword
 	
+	struct cu_func_s* asn_scop = 0;	//scope for assignment
+	uint64_t asn_indx = 0;			//index for assignment
+	
 	//0		higher scope
-	//1		global declaration (variable)
-	//2		function parameter declaration
-	//3		global declaration (function)
+	//1		variable declaration
+	//2		parameter declaration
+	//3		function declaration
+	
+	//5		variable assignment
+	//6		parameter assignment
+	//7		function assignment
 	
 	//4		lower scope
 	
@@ -393,10 +491,15 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, int8_t* e) {
 	uint8_t indx = 0;
 	
 	scop[0]->para_n = 0;
+	
 	scop[0]->var_n = 0;
 	scop[0]->var = malloc(sizeof(struct cu_var_s) * 255);	//global variables
 	scop[0]->func_n = 0;
 	scop[0]->func = malloc(sizeof(struct cu_func_s) * 255);	//global functions
+	
+	scop[0]->op = malloc(sizeof(struct cu_var_s) * 1024);
+	scop[0]->op_n = 0;
+	
 	
 	for (uint64_t fi = 0; fi < fs.st_size; fi++) {
 		//printf("%c, %u, %u\n", fx[fi], mod, key);
@@ -427,13 +530,37 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, int8_t* e) {
 					memcpy(scop[indx]->var[scop[indx]->var_n].name, lex, strlen(lex));
 					key = 0;
 					mod = 1;
+					
+					scop[indx]->op[scop[indx]->op_n].type = key % 4;
+					scop[indx]->op[scop[indx]->op_n].dst_scop = scop[indx];
+					scop[indx]->op[scop[indx]->op_n].dst_indx = scop[indx]->var_n;
+					scop[indx]->op[scop[indx]->op_n].dst_type = 0;
+					scop[indx]->op_n = scop[indx]->op_n + 1;
+					
+					asn_scop = scop[indx];
+					asn_indx = scop[indx]->var_n;
 				}
 				else {
 					//error
 				}
 			}
-			else if (mod == 0 || mod == 2) {
+			else if (mod == 0 && !key) {
 				key = cu_str_key(lex);
+				
+				if (!key) {
+					for (int8_t i = indx; i != -1; i--) {
+						if (cu_var_str_cmp(scop[i]->var, scop[i]->var_n, lex)) {
+							asn_scop = scop[i];
+							asn_indx = cu_var_str_cmp(scop[i]->var, scop[i]->var_n, lex) - 1;
+							mod = 5;
+							break;
+						}
+						else if (!i) {
+							//error, unknown variable
+							
+						}
+					}
+				}
 			}
 			else {
 				//error
@@ -465,7 +592,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, int8_t* e) {
 		}
 		else if ((fx[fi] == '(') && !c) {								//next string
 			if (mod == 0 && li && key) {								//begin function parameters
-				if (!cu_var_str_cmp(scop[indx]->func[scop[indx]->func_n].para, scop[indx]->func[scop[indx]->func_n].para_n, lex)) {
+				if (!cu_func_str_cmp(scop[indx]->func, scop[indx]->func_n, lex)) {
 					scop[indx]->func[scop[indx]->func_n].type = key;
 					scop[indx]->func[scop[indx]->func_n].name = malloc(strlen(lex));
 					scop[indx]->func[scop[indx]->func_n].name_n = strlen(lex);
@@ -480,11 +607,28 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, int8_t* e) {
 					scop[indx]->func[scop[indx]->func_n].func = malloc(sizeof(struct cu_func_s) * 255);
 					scop[indx]->func[scop[indx]->func_n].func_n = 0;
 					
+					scop[indx]->func[scop[indx]->func_n].op = malloc(sizeof(struct cu_op_s) * 1024);
+					scop[indx]->func[scop[indx]->func_n].op_n = 0;
+					
 					key = 0;
 					mod = 2;
 				}
 				else {
 					//error
+				}
+			}
+			else if (mod == 0 && li && !key) {						//function call
+				for (int8_t i = indx; i != -1; i--) {
+					if (cu_func_str_cmp(scop[i]->func, scop[i]->func_n, lex)) {
+						asn_scop = scop[i];
+						asn_indx = cu_func_str_cmp(scop[i]->func, scop[i]->func_n, lex);
+						mod = 6;
+						break;
+					}
+					else if (!i) {
+						//error, unknown function
+						
+					}
 				}
 			}
 			else {
@@ -547,11 +691,25 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, int8_t* e) {
 		}
 		else if ((fx[fi] == ';') && !c) {
 			if (mod == 0) {
-				scop[indx]->var[scop[indx]->var_n].type = key;
-				scop[indx]->var[scop[indx]->var_n].name = malloc(strlen(lex));
-				scop[indx]->var[scop[indx]->var_n].name_n = strlen(lex);
-				memcpy(scop[indx]->var[scop[indx]->var_n].name, lex, strlen(lex));
-				scop[indx]->var_n = scop[indx]->var_n + 1;
+				if (!cu_var_str_cmp(scop[indx]->var, scop[indx]->var_n, lex)) {
+					scop[indx]->var[scop[indx]->var_n].type = key;
+					scop[indx]->var[scop[indx]->var_n].name = malloc(strlen(lex));
+					scop[indx]->var[scop[indx]->var_n].name_n = strlen(lex);
+					memcpy(scop[indx]->var[scop[indx]->var_n].name, lex, strlen(lex));
+					
+					scop[indx]->op[scop[indx]->op_n].type = key % 4;
+					scop[indx]->op[scop[indx]->op_n].dst_scop = scop[indx];
+					scop[indx]->op[scop[indx]->op_n].dst_indx = scop[indx]->var_n;
+					scop[indx]->op[scop[indx]->op_n].dst_type = 0;
+					scop[indx]->op_n = scop[indx]->op_n + 1;
+					
+					scop[indx]->var_n = scop[indx]->var_n + 1;
+					key = 0;
+					mod = 0;
+				}
+				else {
+					//error
+				}
 				key = 0;
 				mod = 0;
 			}
@@ -567,7 +725,30 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, int8_t* e) {
 				func[func_n].var_n = func[func_n].var_n + 1;
 				key = 0;
 				mod = 4;
+			}
+			else if (mod == 4) {
+				scop[indx]->op[scop[indx]->op_n].type = 9;
+				scop[indx]->op[scop[indx]->op_n].dst_scop = scop[i];
+				scop[indx]->op[scop[indx]->op_n].dst_indx = cu_func_str_cmp(scop[i]->func, scop[i]->func_n, lex);
+				scop[indx]->op[scop[indx]->op_n].dst_type = 2;
+				scop[indx]->op_n = scop[indx]->op_n + 1;
 			}*/
+			else if (mod == 5) {
+				if ((lex[0] >= 48 && lex[0] <= 57) || lex[0] == 45) {
+					printf("%s\n", asn_scop->var[asn_indx].name);
+					if (asn_scop->var[asn_indx].type == 1) {
+						scop[indx]->op[scop[indx]->op_n].type = 5;
+						scop[indx]->op[scop[indx]->op_n].dst_scop = asn_scop;
+						scop[indx]->op[scop[indx]->op_n].dst_indx = asn_indx;
+						scop[indx]->op[scop[indx]->op_n].dst_type = 0;
+						
+						scop[indx]->op[scop[indx]->op_n].src_type = 3;
+						scop[indx]->op[scop[indx]->op_n].src_imm = cu_str_int_dec(lex, e, path, ln);
+						scop[indx]->op_n = scop[indx]->op_n + 1;
+					}
+					mod = 0;
+				}
+			}
 			else if (key == 0) {
 				key = cu_str_key(lex); //single keywords
 			}
@@ -666,7 +847,7 @@ int8_t main(int32_t argc, int8_t** argv) {
 	uint8_t* bin = calloc(1000000, 1);
 	uint64_t bn = 0;
 	uint8_t e = 0;
-	cu_lex(bin, &bn, argv[2], &e);
+	cu_lex(bin, &bn, argv[2], &e, 4);
 	
 	/*if (!e) {
 		cu_writ_bin(bin, bn, argv[3]);
