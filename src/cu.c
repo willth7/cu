@@ -38,6 +38,13 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 
+struct au_sym_s {
+	uint8_t* str;
+	uint8_t len;
+	uint64_t addr;
+	uint8_t typ;
+};
+
 struct cu_var_s {
 	uint8_t type;				//variable type
 	uint8_t* name;				//variable name
@@ -76,6 +83,10 @@ struct cu_op_s {
 	uint8_t src_type;			//0 for variable, 1 for parameter, 2 for function, 3 for immediate
 	uint64_t src_imm;			//immediate
 };
+
+void (*cu_comp) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, struct au_sym_s*, uint64_t*, struct cu_func_s**);
+
+#include "x86/x64.h"
 
 /*	operation types
 
@@ -382,12 +393,12 @@ void cu_func_print(struct cu_func_s* func, uint8_t func_n) {
 	}
 }
 
-void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, int8_t* e, uint8_t addr_len) {
+struct cu_func_s** cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, int8_t* e, uint8_t addr_len) {
 	int32_t fd = open(path, O_RDONLY);
     if (fd == -1) {
         printf("error: failed to open file '%s'\n", path);
 		*e = -1;
-        return;
+        return 0;
     }
 	
     struct stat fs;
@@ -408,6 +419,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, int8_t* e, uint8_t addr_le
 	uint64_t asn_indx = 0;			//index for assignment
 	struct cu_func_s* ope_scop = 0;	//scope for operand
 	uint64_t ope_indx = 0;			//index for operand
+	uint64_t ope_imm = 0;
 	uint8_t opc = 0;				//opcode
 	
 	//0		higher scope
@@ -421,10 +433,10 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, int8_t* e, uint8_t addr_le
 	
 	//4		lower scope
 	
-	struct cu_func_s* scop[255] = {};
-	scop[0] = malloc(sizeof(struct cu_func_s));
+	struct cu_func_s** scop = malloc(sizeof(struct cu_func_s*) * 255);
 	uint8_t indx = 0;
 	
+	scop[0] = malloc(sizeof(struct cu_func_s));
 	scop[0]->para_n = 0;
 	
 	scop[0]->var_n = 0;
@@ -873,6 +885,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, int8_t* e, uint8_t addr_le
 	cu_func_print(scop[indx]->func, scop[indx]->func_n);
 	
 	munmap(fx, fs.st_size);
+	return scop;
 }
 
 void cu_writ_bin(uint8_t* bin, uint64_t bn, int8_t* path) {
@@ -910,7 +923,7 @@ int8_t main(int32_t argc, int8_t** argv) {
 		
 	}
 	else if (!strcmp(argv[1], "x86-64")) {
-		
+		cu_comp = x86_64_comp;
 	}
 	else {
 		printf("error: unsupported architecture\n");
@@ -935,12 +948,18 @@ int8_t main(int32_t argc, int8_t** argv) {
 	
 	uint8_t* bin = calloc(1000000, 1);
 	uint64_t bn = 0;
-	uint8_t e = 0;
-	cu_lex(bin, &bn, argv[2], &e, 4);
+	struct au_sym_s* sym = calloc(1000000, 1);
+	uint64_t symn = 0;
+	struct au_sym_s* rel = calloc(1000000, 1);
+	uint64_t reln = 0;
+	int8_t e = 0;
 	
-	/*if (!e) {
+	struct cu_func_s** scop = cu_lex(bin, &bn, argv[2], &e, 4);
+	
+	if (!e) {
+		cu_comp(bin, &bn, sym, &symn, rel, &reln, scop);
 		cu_writ_bin(bin, bn, argv[3]);
-	}*/
+	}
 	
 	free(bin);
 	return 0;
