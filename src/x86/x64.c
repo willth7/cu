@@ -31,6 +31,12 @@ struct au_sym_s {
 	uint8_t typ;
 };
 
+struct cu_var_s {
+	uint8_t type;				//variable type
+	uint8_t* name;				//variable name
+	uint8_t name_n;				//name length
+};
+
 struct cu_func_s {
 	uint8_t type;				//return type
 	uint8_t* name;				//function name
@@ -184,6 +190,12 @@ void x86_64_enc_push_reg(uint8_t* bin, uint64_t* bn, uint8_t r) {
 	x86_64_inst_byt(bin, bn, 80 | (r & 7)); //op
 }
 
+void x86_64_enc_pop_reg(uint8_t* bin, uint64_t* bn, uint8_t r) {
+	x86_64_prfx_leg(bin, bn, 0, r);
+	x86_64_prfx_rex(bin, bn, r, 0, 0);
+	x86_64_inst_byt(bin, bn, 88 | (r & 7)); //op
+}
+
 void x86_64_enc_syscall(uint8_t* bin, uint64_t* bn) {
 	x86_64_inst_byt(bin, bn, 15); //op
 	x86_64_inst_byt(bin, bn, 5); //op
@@ -197,9 +209,32 @@ void x86_64_comp(uint8_t* bin, uint64_t* bn, struct au_sym_s* sym, uint64_t* sym
 	memcpy(rel[0].str, "main", 5);
 	rel[0].len = 5;
 	rel[0].addr = *bn;
+	rel[0].typ = 3;
 	*reln = 1;
-	//x86_64_enc_call_k32(bin, bn, 0);
+	x86_64_enc_call_k32(bin, bn, 0);
 	
+	for (uint64_t i = 0; i < scop[0]->func_n; i++) {
+		//create new symbol
+		sym[*symn].str = scop[0]->func[i].name;
+		sym[*symn].len = scop[0]->func[i].name_n;
+		sym[*symn].addr = *bn;
+		*symn = *symn + 1;
+		
+		x86_64_enc_mov_reg_k32(bin, bn, 55, 10); //mov rdi, 10
+		x86_64_enc_shl_reg_k32(bin, bn, 55, 8); //shl rdi, 8
+		x86_64_enc_add_reg_k32(bin, bn, 55, 36 + i); //mov rdi, 36
+		x86_64_enc_push_reg(bin, bn, 55); //push rdi 
+	
+		x86_64_enc_mov_reg_k32(bin, bn, 55, 1); //mov rdi, 1
+		x86_64_enc_mov_reg_reg(bin, bn, 54, 52); //mov rsi, rsp
+		x86_64_enc_mov_reg_k32(bin, bn, 50, 3); //mov rdx, 3
+		x86_64_enc_mov_reg_k32(bin, bn, 48, 1); //mov rax, 1
+		x86_64_enc_syscall(bin, bn); //syscall
+		
+		x86_64_enc_pop_reg(bin, bn, 55); //pop rdi
+	}
+	
+	//exit routine
 	x86_64_enc_mov_reg_k32(bin, bn, 55, 10); //mov rdi, 10
 	x86_64_enc_shl_reg_k32(bin, bn, 55, 8); //shl rdi, 8
 	x86_64_enc_add_reg_k32(bin, bn, 55, 36); //mov rdi, 36
@@ -211,7 +246,6 @@ void x86_64_comp(uint8_t* bin, uint64_t* bn, struct au_sym_s* sym, uint64_t* sym
 	x86_64_enc_mov_reg_k32(bin, bn, 48, 1); //mov rax, 1
 	x86_64_enc_syscall(bin, bn); //syscall
 	
-	//exit system call
 	x86_64_enc_mov_reg_k32(bin, bn, 55, 0); //mov rdi, 0
 	x86_64_enc_mov_reg_k32(bin, bn, 48, 60); //mov rax, 60
 	x86_64_enc_syscall(bin, bn); //syscall

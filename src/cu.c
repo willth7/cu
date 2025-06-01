@@ -86,6 +86,8 @@ struct cu_op_s {
 
 void (*cu_comp) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, struct au_sym_s*, uint64_t*, struct cu_func_s**);
 
+void (*cu_writ) (uint8_t*, uint64_t, struct au_sym_s*, uint64_t, struct au_sym_s*, uint64_t, int8_t*);
+
 #include "x86/x64.h"
 
 /*	operation types
@@ -888,7 +890,7 @@ struct cu_func_s** cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, int8_t* e, u
 	return scop;
 }
 
-void cu_writ_bin(uint8_t* bin, uint64_t bn, int8_t* path) {
+void cu_writ_bin(uint8_t* bin, uint64_t bn, struct au_sym_s* sym, uint64_t symn, struct au_sym_s* rel, uint64_t reln, int8_t* path) {
 	int32_t fd = open(path, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU);
     if (fd == -1) {
         printf("error: failed to create file '%s'\n", path);
@@ -898,6 +900,64 @@ void cu_writ_bin(uint8_t* bin, uint64_t bn, int8_t* path) {
     uint8_t* mem = mmap(0, bn, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 	memcpy(mem, bin, bn);
 	munmap(mem, bn);
+	close(fd);
+}
+
+void cu_writ_zn(uint8_t* bin, uint64_t bn, struct au_sym_s* sym, uint64_t symn, struct au_sym_s* rel, uint64_t reln, int8_t* path) {
+	uint64_t strsz = 0;
+	for (uint8_t i = 0; i < symn; i++) {
+		strsz = strsz + sym[i].len;
+	}
+	for (uint8_t i = 0; i < reln; i++) {
+		strsz = strsz + rel[i].len;
+	}
+	
+	uint64_t memsz = 52 + bn + (symn * 18) + (reln * 18) + strsz;
+	
+	int32_t fd = open(path, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU);
+    if (fd == -1) {
+        printf("error: failed to create file '%s'\n", path);
+        return;
+    }
+    ftruncate(fd, memsz);
+    uint8_t* mem = mmap(0, memsz, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+	
+	uint64_t binoff = 52;
+	uint64_t symoff = 52 + bn;
+	uint64_t reloff = 52 + bn + (symn * 18);
+	uint64_t stroff = 52 + bn + (symn * 18) + (reln * 18);
+	
+	memcpy(mem, "zinc", 4);
+	memcpy(mem + 4, &binoff, 8);
+	memcpy(mem + 12, &bn, 8);
+	memcpy(mem + 20, &symoff, 8);
+	memcpy(mem + 28, &symn, 8);
+	memcpy(mem + 36, &reloff, 8);
+	memcpy(mem + 44, &reln, 8);
+	
+	
+	memcpy(mem + binoff, bin, bn);
+	for (uint64_t i = 0; i < symn; i++) {
+		memcpy(mem + symoff + (18 * i), &stroff, 8);
+		memcpy(mem + symoff + (18 * i) + 8, &(sym[i].len), 1);
+		memcpy(mem + symoff + (18 * i) + 9, &(sym[i].addr), 8);
+		memcpy(mem + symoff + (18 * i) + 17, &(sym[i].typ), 1);
+		
+		memcpy(mem + stroff, sym[i].str, sym[i].len);
+		stroff = stroff + sym[i].len;
+	}
+	
+	for (uint64_t i = 0; i < reln; i++) {
+		memcpy(mem + reloff + (18 * i), &stroff, 8);
+		memcpy(mem + reloff + (18 * i) + 8, &(rel[i].len), 1);
+		memcpy(mem + reloff + (18 * i) + 9, &(rel[i].addr), 8);
+		memcpy(mem + reloff + (18 * i) + 17, &(rel[i].typ), 1);
+		
+		memcpy(mem + stroff, rel[i].str, rel[i].len);
+		stroff = stroff + rel[i].len;
+	}
+	
+	munmap(mem, memsz);
 	close(fd);
 }
 
@@ -936,10 +996,10 @@ int8_t main(int32_t argc, int8_t** argv) {
 	}
 	
 	if (!strcmp(argv[3] + strlen(argv[3]) - 4, ".bin")) {
-		
+		cu_writ = cu_writ_bin;
 	}
 	else if (!strcmp(argv[3] + strlen(argv[3]) - 3, ".zn")) {
-		
+		cu_writ = cu_writ_zn;
 	}
 	else {
 		printf("error: invalid writput format\n");
@@ -958,7 +1018,7 @@ int8_t main(int32_t argc, int8_t** argv) {
 	
 	if (!e) {
 		cu_comp(bin, &bn, sym, &symn, rel, &reln, scop);
-		cu_writ_bin(bin, bn, argv[3]);
+		cu_writ(bin, bn, sym, symn, rel, reln, argv[3]);
 	}
 	
 	free(bin);
