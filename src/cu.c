@@ -84,7 +84,7 @@ struct cu_op_s {
 	uint64_t src_imm;			//immediate
 };
 
-void (*cu_comp) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, struct au_sym_s*, uint64_t*, struct cu_func_s**);
+void (*cu_comp) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, struct au_sym_s*, uint64_t*, struct cu_func_s*);
 
 void (*cu_writ) (uint8_t*, uint64_t, struct au_sym_s*, uint64_t, struct au_sym_s*, uint64_t, int8_t*);
 
@@ -129,6 +129,8 @@ void (*cu_writ) (uint8_t*, uint64_t, struct au_sym_s*, uint64_t, struct au_sym_s
 	27	multiply
 	28	divide
 	29	modulo
+	
+	30 return
 
 */
 
@@ -324,7 +326,7 @@ uint8_t cu_str_key(uint8_t* str) {
 	}
 	
 	else if (!strcmp(str, "return")) {
-		
+		return 30;
 	}
 	else if (!strcmp(str, "break")) {
 		
@@ -813,7 +815,17 @@ struct cu_func_s** cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, int8_t* e, u
 		}
 		else if ((fx[fi] == ';') && !c) {
 			if (mod == 0) {
-				if (!cu_var_str_cmp(scop[indx]->var, scop[indx]->var_n, lex)) {
+				if (key == 30) { //return
+					if ((lex[0] >= 48 && lex[0] <= 57) || lex[0] == 45) {
+						scop[indx]->op[scop[indx]->op_n].type = 30;
+						scop[indx]->op[scop[indx]->op_n].src_type = 3;
+						scop[indx]->op[scop[indx]->op_n].src_imm = cu_str_int_dec(lex, e, path, ln);
+						scop[indx]->op_n = scop[indx]->op_n + 1;
+						
+						key = 0;
+					}
+				}
+				else if (!cu_var_str_cmp(scop[indx]->var, scop[indx]->var_n, lex)) {
 					scop[indx]->var[scop[indx]->var_n].type = key;
 					scop[indx]->var[scop[indx]->var_n].name = malloc(strlen(lex));
 					scop[indx]->var[scop[indx]->var_n].name_n = strlen(lex);
@@ -857,7 +869,6 @@ struct cu_func_s** cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, int8_t* e, u
 			}*/
 			else if (mod == 5) {
 				if ((lex[0] >= 48 && lex[0] <= 57) || lex[0] == 45) {
-					printf("%s\n", asn_scop->var[asn_indx].name);
 					if (asn_scop->var[asn_indx].type == 1) {
 						scop[indx]->op[scop[indx]->op_n].type = 5;
 						scop[indx]->op[scop[indx]->op_n].dst_scop = asn_scop;
@@ -870,9 +881,6 @@ struct cu_func_s** cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, int8_t* e, u
 					}
 					mod = 0;
 				}
-			}
-			else if (key == 0) {
-				key = cu_str_key(lex); //single keywords
 			}
 			else {
 				//error
@@ -1017,7 +1025,7 @@ int8_t main(int32_t argc, int8_t** argv) {
 	struct cu_func_s** scop = cu_lex(bin, &bn, argv[2], &e, 4);
 	
 	if (!e) {
-		cu_comp(bin, &bn, sym, &symn, rel, &reln, scop);
+		cu_comp(bin, &bn, sym, &symn, rel, &reln, scop[0]);
 		cu_writ(bin, bn, sym, symn, rel, reln, argv[3]);
 	}
 	

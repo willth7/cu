@@ -14,4 +14,4 @@
 
 //   sub umbra alarum suarum
 
-void x86_64_comp(uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, struct au_sym_s*, uint64_t*, struct cu_func_s**);
+void x86_64_comp(uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, struct au_sym_s*, uint64_t*, struct cu_func_s*);
