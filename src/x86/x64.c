@@ -185,6 +185,40 @@ void x86_64_enc_mov_reg_reg(uint8_t* bin, uint64_t* bn, uint8_t r0, uint8_t r1) 
 	x86_64_inst_mod(bin, bn, 3, r0, r1); //modrm
 }
 
+void x86_64_enc_mov_reg_addr_disp(uint8_t* bin, uint64_t* bn, uint8_t r0, uint8_t r1, uint32_t d) {
+	if ((r1 & 7) == 4 && d == 0) {
+		x86_64_prfx_leg(bin, bn, r1, r0);
+ 		x86_64_prfx_rex(bin, bn, r1, 0, r0);
+ 		x86_64_inst_byt(bin, bn, 138 + !!(r0 & 48)); //op
+ 		x86_64_inst_mod(bin, bn, 0, 4, r0); //modrm
+		x86_64_inst_mod(bin, bn, 0, 4, 4); //sib
+	}
+	else {
+		x86_64_prfx_leg(bin, bn, r1, r0);
+ 		x86_64_prfx_rex(bin, bn, 0, 0, r0);
+ 		x86_64_inst_byt(bin, bn, 138 + !!(r0 & 48)); //op
+ 		x86_64_inst_mod(bin, bn, 0, 5, r0); //modrm
+ 		x86_64_inst_k32(bin, bn, d); //disp
+	}
+}
+
+void x86_64_enc_mov_addr_disp_reg(uint8_t* bin, uint64_t* bn, uint8_t r0, uint32_t d, uint8_t r1) {
+	if ((r0 & 7) == 4 && d == 0) {
+		x86_64_prfx_leg(bin, bn, r0, r1);
+ 		x86_64_prfx_rex(bin, bn, r0, 0, r1);
+ 		x86_64_inst_byt(bin, bn, 136 + !!(r1 & 48)); //op
+ 		x86_64_inst_mod(bin, bn, 0, 4, r1); //modrm
+ 		x86_64_inst_mod(bin, bn, 0, 4, 4); //sib
+	}
+	else {
+		x86_64_prfx_leg(bin, bn, r0, r1);
+ 		x86_64_prfx_rex(bin, bn, 0, 0, r1);
+ 		x86_64_inst_byt(bin, bn, 136 + !!(r1 & 48)); //op
+ 		x86_64_inst_mod(bin, bn, 0, 5, r1); //modrm
+ 		x86_64_inst_k32(bin, bn, d); //disp
+	}
+}
+
 void x86_64_enc_shl_reg_imm(uint8_t* bin, uint64_t* bn, uint8_t r, uint32_t k) {
 	x86_64_prfx_leg(bin, bn, 0, r);
 	x86_64_prfx_rex(bin, bn, r, 0, r & 48);
@@ -194,17 +228,39 @@ void x86_64_enc_shl_reg_imm(uint8_t* bin, uint64_t* bn, uint8_t r, uint32_t k) {
 }
 
 void x86_64_enc_add_reg_imm(uint8_t* bin, uint64_t* bn, uint8_t r, uint32_t k) {
-	x86_64_prfx_leg(bin, bn, 0, r);
-	x86_64_prfx_rex(bin, bn, 0, 0, r);
-	x86_64_inst_byt(bin, bn, 128 + !!(r & 48));
-	x86_64_inst_mod(bin, bn, 3, r, 0); //modrm
-	x86_64_inst_lcp(bin, bn, r, k); //imm
+	if (r & 15 == 0) {
+		x86_64_prfx_leg(bin, bn, 0, r);
+		x86_64_prfx_rex(bin, bn, 0, 0, r);
+		x86_64_inst_byt(bin, bn, 4 + !!(r & 48));
+		x86_64_inst_lcp(bin, bn, r, k); //modrm
+	}
+	else if (k < 256) {
+		x86_64_prfx_leg(bin, bn, 0, r);
+		x86_64_prfx_rex(bin, bn, 0, 0, r);
+		x86_64_inst_byt(bin, bn, 131);
+		x86_64_inst_mod(bin, bn, 3, r, 0); //modrm
+		x86_64_inst_byt(bin, bn, k); //imm
+	}
+	else {
+		x86_64_prfx_leg(bin, bn, 0, r);
+		x86_64_prfx_rex(bin, bn, 0, 0, r);
+		x86_64_inst_byt(bin, bn, 128 + !!(r & 48));
+		x86_64_inst_mod(bin, bn, 3, r, 0); //modrm
+		x86_64_inst_lcp(bin, bn, r, k); //imm
+	}
 }
 
 void x86_64_enc_add_reg_reg(uint8_t* bin, uint64_t* bn, uint8_t r0, uint8_t r1) {
 	x86_64_prfx_leg(bin, bn, 0, r1);
 	x86_64_prfx_rex(bin, bn, r0, 0, r1);
 	x86_64_inst_byt(bin, bn, 0 + !!(r0 & 48)); //op
+	x86_64_inst_mod(bin, bn, 3, r0, r1); //modrm
+}
+
+void x86_64_enc_or_reg_reg(uint8_t* bin, uint64_t* bn, uint8_t r0, uint8_t r1) {
+	x86_64_prfx_leg(bin, bn, 0, r1);
+	x86_64_prfx_rex(bin, bn, r0, 0, r1);
+	x86_64_inst_byt(bin, bn, 8 + !!(r0 & 48)); //op
 	x86_64_inst_mod(bin, bn, 3, r0, r1); //modrm
 }
 
@@ -260,24 +316,114 @@ void x86_64_comp(uint8_t* bin, uint64_t* bn, struct au_sym_s* sym, uint64_t* sym
 	rel[0].addr = *bn;
 	rel[0].typ = 3;
 	*reln = 1;
+
+	sym[0].str = malloc(5);
+	memcpy(sym[0].str, "_ent", 5);
+	sym[0].len = 5;
+	sym[0].addr = *bn;
+	sym[0].typ = 0;
+	*symn += 1;
+	
 	x86_64_enc_call_imm(bin, bn, 0);
 	
-	//exit routine
+	sym[1].str = malloc(15);
+	memcpy(sym[1].str, "_print_ret_val", 15);
+	sym[1].len = 15;
+	sym[1].addr = *bn;
+	sym[1].typ = 0;
+	*symn += 1;
+	
 	x86_64_enc_pop_reg(bin, bn, 48); //pop rax
-	x86_64_enc_mov_reg_imm(bin, bn, 55, 10); //mov rdi, 10
-	x86_64_enc_shl_reg_imm(bin, bn, 55, 8); //shl rdi, 8
-	x86_64_enc_add_reg_reg(bin, bn, 55, 48); //add rdi, rax
-	x86_64_enc_push_reg(bin, bn, 55); //push rdi 
+	x86_64_enc_mov_reg_imm(bin, bn, 49, 10); //mov rcx, 10
+	x86_64_enc_shl_reg_imm(bin, bn, 49, 8); //shl rcx, 8
+	x86_64_enc_add_reg_reg(bin, bn, 49, 48); //add rcx, rax
+	x86_64_enc_add_reg_imm(bin, bn, 49, 48); //add rcx, 48
+	x86_64_enc_push_reg(bin, bn, 49); //push rcx 
 	
 	x86_64_enc_mov_reg_imm(bin, bn, 55, 1); //mov rdi, 1
 	x86_64_enc_mov_reg_reg(bin, bn, 54, 52); //mov rsi, rsp
-	x86_64_enc_mov_reg_imm(bin, bn, 50, 3); //mov rdx, 3
+	x86_64_enc_mov_reg_imm(bin, bn, 50, 2); //mov rdx, 2
 	x86_64_enc_mov_reg_imm(bin, bn, 48, 1); //mov rax, 1
 	x86_64_enc_syscall(bin, bn); //syscall
+	
+	sym[2].str = malloc(6);
+	memcpy(sym[2].str, "_exit", 6);
+	sym[2].len = 6;
+	sym[2].addr = *bn;
+	sym[2].typ = 0;
+	*symn += 1;
 	
 	x86_64_enc_mov_reg_imm(bin, bn, 55, 0); //mov rdi, 0
 	x86_64_enc_mov_reg_imm(bin, bn, 48, 60); //mov rax, 60
 	x86_64_enc_syscall(bin, bn); //syscall
+	
+	//functions for moving contents of register rax onto the stack
+
+	//NOTE, these functions are not actually called, calling them would slow down execution, this is just a table for code that is regularly used throughout
+
+	sym[3].str = malloc(7);
+	memcpy(sym[3].str, "_mov_8", 7);
+	sym[3].len = 7;
+	sym[3].addr = *bn;
+	sym[3].typ = 0;
+	*symn += 1;
+
+	x86_64_enc_pop_reg(bin, bn, 50); //pop rdx
+	x86_64_enc_mov_reg_addr_disp(bin, bn, 49, 52, 0); //mov rcx, (rsp)
+	x86_64_enc_shl_reg_imm(bin, bn, 49, 8); //shl rcx, 8
+	x86_64_enc_or_reg_reg(bin, bn, 48, 49); //or rax, rcx
+	x86_64_enc_add_reg_imm(bin, bn, 52, 1); //add rsp, 1
+	x86_64_enc_mov_addr_disp_reg(bin, bn, 52, 0, 48); //mov (rsp), rax
+	x86_64_enc_push_reg(bin, bn, 50); //push rdx
+	x86_64_enc_ret(bin, bn); //ret
+	
+	
+	sym[4].str = malloc(8);
+	memcpy(sym[4].str, "_mov_16", 8);
+	sym[4].len = 8;
+	sym[4].addr = *bn;
+	sym[4].typ = 0;
+	*symn += 1;
+
+	x86_64_enc_pop_reg(bin, bn, 50); //pop rdx
+	x86_64_enc_mov_reg_addr_disp(bin, bn, 49, 52, 0); //mov rcx, (rsp)
+	x86_64_enc_shl_reg_imm(bin, bn, 49, 16); //shl rcx, 16
+	x86_64_enc_or_reg_reg(bin, bn, 48, 49); //or rax, rcx
+	x86_64_enc_add_reg_imm(bin, bn, 52, 2); //add rsp, 2
+	x86_64_enc_mov_addr_disp_reg(bin, bn, 52, 0, 48); //mov (rsp), rax
+	x86_64_enc_push_reg(bin, bn, 50); //push rdx
+	x86_64_enc_ret(bin, bn); //ret
+
+
+	sym[5].str = malloc(8);
+	memcpy(sym[5].str, "_mov_32", 8);
+	sym[5].len = 8;
+	sym[5].addr = *bn;
+	sym[5].typ = 0;
+	*symn += 1;
+	
+	x86_64_enc_pop_reg(bin, bn, 50); //pop rdx
+	x86_64_enc_mov_reg_addr_disp(bin, bn, 49, 52, 0); //mov rcx, (rsp)
+	x86_64_enc_shl_reg_imm(bin, bn, 49, 32); //shl rcx, 32
+	x86_64_enc_or_reg_reg(bin, bn, 48, 49); //or rax, rcx
+	x86_64_enc_add_reg_imm(bin, bn, 52, 4); //add rsp, 4
+	x86_64_enc_mov_addr_disp_reg(bin, bn, 52, 0, 48); //mov (rsp), rax
+	x86_64_enc_push_reg(bin, bn, 50); //push rdx
+	x86_64_enc_ret(bin, bn); //ret
+	
+	sym[6].str = malloc(8);
+	memcpy(sym[6].str, "_mov_64", 8);
+	sym[6].len = 8;
+	sym[6].addr = *bn;
+	sym[6].typ = 0;
+	*symn += 1;
+	
+	x86_64_enc_pop_reg(bin, bn, 50); //pop rdx
+	x86_64_enc_add_reg_imm(bin, bn, 52, 4); //add rsp, 4
+	x86_64_enc_mov_addr_disp_reg(bin, bn, 52, 0, 48); //mov (rsp), rax
+	x86_64_enc_push_reg(bin, bn, 50); //push rdx
+	x86_64_enc_ret(bin, bn); //ret
+
 	
 	for (uint64_t i = 0; i < scop->func_n; i++) {
 		//create new symbol
