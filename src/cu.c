@@ -45,50 +45,21 @@ struct au_sym_s {
 	uint8_t typ;
 };
 
-struct cu_var_s {
-	uint8_t type;				//variable type
-	uint8_t* name;				//variable name
-	uint8_t name_n;				//name length
-};
-
-struct cu_op_s;
-
-struct cu_func_s {
-	uint8_t type;				//return type
-	uint8_t* name;				//function name
-	uint8_t name_n;				//name length
-	
-	struct cu_var_s* para;		//parameters
-	uint8_t para_n;				//number of parameters
-	
-	struct cu_var_s* var;		//local variables
-	uint64_t var_n;				//number of local variables
-	
-	struct cu_func_s* func;		//local functions
-	uint64_t func_n;			//number of local functions
-	
-	struct cu_op_s* op;			//operations
-	uint64_t op_n;				//number of operations
-};
-
-struct cu_op_s {
-	uint8_t type;				//operation type
-	
-	struct cu_func_s* dst_scop;	//scope for destination variable
-	uint64_t dst_indx;			//index for destination variable
-	uint8_t dst_type;			//0 for variable, 1 for parameter, 2 for function
-	
-	struct cu_func_s* src_scop;	//scope for source variable
-	uint64_t src_indx;			//index for source variable
-	uint8_t src_type;			//0 for variable, 1 for parameter, 2 for function, 3 for immediate
-	uint64_t src_imm;			//immediate
-};
-
-void (*cu_comp) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, struct au_sym_s*, uint64_t*, struct cu_func_s*);
+#include "x86/x64.h"
 
 void (*cu_writ) (uint8_t*, uint64_t, struct au_sym_s*, uint64_t, struct au_sym_s*, uint64_t, int8_t*);
 
-#include "x86/x64.h"
+void (*cu_enc_ent) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, struct au_sym_s*, uint64_t*); 
+
+void (*cu_enc_exit) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, struct au_sym_s*, uint64_t*);
+
+void (*cu_enc_dec_8) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, struct au_sym_s*, uint64_t*);
+
+void (*cu_enc_dec_16) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, struct au_sym_s*, uint64_t*);
+
+void (*cu_enc_dec_32) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, struct au_sym_s*, uint64_t*);
+
+void (*cu_enc_dec_64) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, struct au_sym_s*, uint64_t*);
 
 /*	operation types
 
@@ -337,72 +308,12 @@ uint8_t cu_str_key(uint8_t* str) {
 	}
 }
 
-uint8_t cu_var_str_cmp(struct cu_var_s* var, uint8_t var_n, uint8_t* str) {
-	for (uint8_t i = 0; i < var_n; i++) {
-		if (!strcmp(var[i].name, str)) {
-			return i + 1;
-		}
-	}
-	return 0;
-}
-
-uint8_t cu_func_str_cmp(struct cu_func_s* func, uint8_t func_n, uint8_t* str) {
-	for (uint8_t i = 0; i < func_n; i++) {
-		if (!strcmp(func[i].name, str)) {
-			return i + 1;
-		}
-	}
-	return 0;
-}
-
-void cu_var_print(struct cu_var_s* var, uint8_t var_n) {
-	for (uint8_t i = 0; i < var_n; i++) {
-		if (var[i].type == 1) {
-			printf("\tunsigned byte %s\n", var[i].name);
-		}
-		else if (var[i].type == 2) {
-			printf("\tunsigned halfword %s\n", var[i].name);
-		}
-		else if (var[i].type == 3) {
-			printf("\tunsigned word %s\n", var[i].name);
-		}
-		else if (var[i].type == 5) {
-			printf("\tsigned byte %s\n", var[i].name);
-		}
-		else if (var[i].type == 6) {
-			printf("\tsigned halfword %s\n", var[i].name);
-		}
-		else if (var[i].type == 7) {
-			printf("\tsigned word %s\n", var[i].name);
-		}
-	}
-}
-
-void cu_op_print(struct cu_op_s* op, uint8_t op_n) {
-	for (uint8_t i = 0; i < op_n; i++) {
-		printf("type %u, \n", op[i].type);
-	}
-}
-
-void cu_func_print(struct cu_func_s* func, uint8_t func_n) {
-	for (uint8_t i = 0; i < func_n; i++) {
-		printf("function %s with parameters\n", func[i].name);
-		cu_var_print(func[i].para, func[i].para_n);
-		printf("and local variables\n");
-		cu_var_print(func[i].var, func[i].var_n);
-		printf("and local functions\n");
-		cu_func_print(func[i].func, func[i].func_n);
-		printf("\n");
-		cu_op_print(func[i].op, func[i].op_n);
-	}
-}
-
-struct cu_func_s** cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, int8_t* e, uint8_t addr_len) {
+void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint64_t* symn, struct au_sym_s* rel, uint64_t* reln, int8_t* e) {
 	int32_t fd = open(path, O_RDONLY);
     if (fd == -1) {
         printf("error: failed to open file '%s'\n", path);
 		*e = -1;
-        return 0;
+        return;
     }
 	
     struct stat fs;
@@ -419,13 +330,6 @@ struct cu_func_s** cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, int8_t* e, u
 	uint8_t mod = 0;		//current mode
 	uint8_t key = 0;		//current keyword
 	
-	struct cu_func_s* asn_scop = 0;	//scope for assignment
-	uint64_t asn_indx = 0;			//index for assignment
-	struct cu_func_s* ope_scop = 0;	//scope for operand
-	uint64_t ope_indx = 0;			//index for operand
-	uint64_t ope_imm = 0;
-	uint8_t opc = 0;				//opcode
-	
 	//0		higher scope
 	//1		variable declaration
 	//2		parameter declaration
@@ -437,20 +341,8 @@ struct cu_func_s** cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, int8_t* e, u
 	
 	//4		lower scope
 	
-	struct cu_func_s** scop = malloc(sizeof(struct cu_func_s*) * 255);
-	uint8_t indx = 0;
-	
-	scop[0] = malloc(sizeof(struct cu_func_s));
-	scop[0]->para_n = 0;
-	
-	scop[0]->var_n = 0;
-	scop[0]->var = malloc(sizeof(struct cu_var_s) * 255);	//global variables
-	scop[0]->func_n = 0;
-	scop[0]->func = malloc(sizeof(struct cu_func_s) * 255);	//global functions
-	
-	scop[0]->op = malloc(sizeof(struct cu_var_s) * 1024);
-	scop[0]->op_n = 0;
-	
+	cu_enc_ent(bin, bn, sym, symn, rel, reln); 
+	cu_enc_exit(bin, bn, sym, symn, rel, reln);
 	
 	for (uint64_t fi = 0; fi < fs.st_size; fi++) {
 		//printf("%c, %u, %u\n", fx[fi], mod, key);
@@ -461,154 +353,64 @@ struct cu_func_s** cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, int8_t* e, u
 			li++;
 		}
 		else if ((fx[fi] == '+') && !li && !c) { //addition
-			if (mod == 5) {
-				opc = 1;
-			}
-			else {
-				//error
-			}
+			
 		}
 		else if ((fx[fi] == '-' && fx[fi + 1] == '>') && li && !c) { //struct access (pointer)
 			
 		}
 		else if ((fx[fi] == '-') && !li && !c) { //subtraction
-			if (mod == 5) {
-				opc = 2;
-			}
-			else {
-				//error
-			}
+			
 		}
 		else if ((fx[fi] == '!') && !li && !c) { //logical not
-			if (mod == 5) {
-				opc = 9;
-			}
-			else {
-				//error
-			}
+			
 		}
 		else if ((fx[fi] == '~') && !li && !c) { //bitwise not
-			if (mod == 5) {
-				opc = 3;
-			}
-			else {
-				//error
-			}
+			
 		}
 		else if ((fx[fi] == '&') && (fx[fi + 1] == '&') && !li && !c) { //logical and
-			if (mod == 5) {
-				opc = 10;
-				fi = fi + 1;
-			}
-			else {
-				//error
-			}
+			
 		}
 		else if ((fx[fi] == '&') && !li && !c) { //reference or bitwise and
-			if (mod == 5) {
-				opc = 4;
-			}
-			else {
-				//error
-			}
+			
 		}
 		else if ((fx[fi] == '|') && (fx[fi + 1] == '|') && !li && !c) { //logical or
-			if (mod == 5) {
-				opc = 11;
-				fi = fi + 1;
-			}
-			else {
-				//error
-			}
+			
 		}
 		else if ((fx[fi] == '|') && !li && !c) { //bitwise or
-			if (mod == 5) {
-				opc = 5;
-			}
-			else {
-				//error
-			}
+			
 		}
 		else if ((fx[fi] == '^') && !li && !c) { //bitwise exclusive or
-			if (mod == 5) {
-				opc = 6;
-			}
-			else {
-				//error
-			}
+			
 		}
 		else if ((fx[fi] == '>') && (fx[fi + 1] == '>') && !li && !c) { //bitwise right shift
-			if (mod == 5) {
-				opc = 7;
-				fi = fi + 1;
-			}
-			else {
-				//error
-			}
+			
 		}
 		else if ((fx[fi] == '>') && !li && !c) { //logical greater than
-			if (mod == 5) {
-				opc = 13;
-			}
-			else {
-				//error
-			}
+			
 		}
 		else if ((fx[fi] == '<') && (fx[fi + 1] == '<') && !li && !c) { //bitwise left shift
-			if (mod == 5) {
-				opc = 8;
-				fi = fi + 1;
-			}
-			else {
-				//error
-			}
+			
 		}
 		else if ((fx[fi] == '<') && !li && !c) { //logical less than
-			if (mod == 5) {
-				opc = 14;
-			}
-			else {
-				//error
-			}
+			
 		}
 		else if ((fx[fi] == '=') && (fx[fi + 1] == '=') && !li && !c) { //logical equal to
-			if (mod == 5) {
-				opc = 12;
-				fi = fi + 1;
-			}
-			else {
-				//error
-			}
+			
 		}
 		else if ((fx[fi] == '=') && !c) {
 			
 		}
 		else if ((fx[fi] == '>') && (fx[fi + 1] == '=') && !li && !c) { //logical greater than or equal to
-			if (mod == 5) {
-				opc = 15;
-				fi = fi + 1;
-			}
-			else {
-				//error
-			}
+			
 		}
 		else if ((fx[fi] == '<') && (fx[fi + 1] == '=') && !li && !c) { //logical less than or equal to
-			if (mod == 5) {
-				opc = 16;
-				fi = fi + 1;
-			}
-			else {
-				//error
-			}
+			
 		}
-		
+		else if (fx[fi] == '*' && fx[fi + 1] == '/' && c == 2) {
+			c = 0;
+		}
 		else if ((fx[fi] == '*') && !li && !c) { //dereference or multiplication
-			if (mod == 5) {
-				opc = 17;
-			}
-			else {
-				//error
-			}
+			
 		}
 		else if ((fx[fi] == '/') && (fx[fi + 1] == '/') && !c) { //line comment
 			c = 1;
@@ -621,281 +423,43 @@ struct cu_func_s** cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, int8_t* e, u
 			li = 0;
 		}
 		else if ((fx[fi] == '/') && !li && !c) { //division
-			if (mod == 5) {
-				opc = 18;
-			}
-			else {
-				//error
-			}
+			
 		}
 		else if ((fx[fi] == '%') && !li && !c) { //modulo
-			if (mod == 5) {
-				opc = 19;
-			}
-			else {
-				//error
-			}
+			
 		}
 		else if (fx[fi] == '\n' && c == 1) {
-			c = 0;
-		}
-		else if (fx[fi] == '*' && fx[fi + 1] == '/' && c == 2) {
 			c = 0;
 		}
 		else if ((fx[fi] == '.') && li && !c) { //struct access
 			
 		}
 		else if ((fx[fi] == ' ') && li && !c) { 					//next string
-			if (mod == 0 && key) {
-				if (!cu_var_str_cmp(scop[indx]->var, scop[indx]->var_n, lex)) {
-					scop[indx]->var[scop[indx]->var_n].type = key;
-					scop[indx]->var[scop[indx]->var_n].name = malloc(strlen(lex));
-					scop[indx]->var[scop[indx]->var_n].name_n = strlen(lex);
-					memcpy(scop[indx]->var[scop[indx]->var_n].name, lex, strlen(lex));
-					key = 0;
-					mod = 1;
-					
-					scop[indx]->op[scop[indx]->op_n].type = key % 4;
-					scop[indx]->op[scop[indx]->op_n].dst_scop = scop[indx];
-					scop[indx]->op[scop[indx]->op_n].dst_indx = scop[indx]->var_n;
-					scop[indx]->op[scop[indx]->op_n].dst_type = 0;
-					scop[indx]->op_n = scop[indx]->op_n + 1;
-					
-					asn_scop = scop[indx];
-					asn_indx = scop[indx]->var_n;
-				}
-				else {
-					//error
-				}
-			}
-			else if (mod == 0 && !key) {
-				key = cu_str_key(lex);
-				
-				if (!key) {
-					for (int8_t i = indx; i != -1; i--) {
-						if (cu_var_str_cmp(scop[i]->var, scop[i]->var_n, lex)) {
-							asn_scop = scop[i];
-							asn_indx = cu_var_str_cmp(scop[i]->var, scop[i]->var_n, lex) - 1;
-							mod = 5;
-							break;
-						}
-						else if (!i) {
-							//error, unknown variable
-							
-						}
-					}
-				}
-			}
-			else {
-				//error
-			}
-			
 			lex[0] = 0;
 			li = 0;
 		}
 		else if ((fx[fi] == ',') && li && !c) { 						//next string (parameter)
-			if (mod == 2 && key) {
-				if (!cu_var_str_cmp(scop[indx]->func[scop[indx]->func_n].para, scop[indx]->func[scop[indx]->func_n].para_n, lex)) {
-					scop[indx]->func[scop[indx]->func_n].para[scop[indx]->func[scop[indx]->func_n].para_n].type = key;
-					scop[indx]->func[scop[indx]->func_n].para[scop[indx]->func[scop[indx]->func_n].para_n].name = malloc(strlen(lex));
-					scop[indx]->func[scop[indx]->func_n].para[scop[indx]->func[scop[indx]->func_n].para_n].name_n = strlen(lex);
-					memcpy(scop[indx]->func[scop[indx]->func_n].para[scop[indx]->func[scop[indx]->func_n].para_n].name, lex, strlen(lex));
-					scop[indx]->func[scop[indx]->func_n].para_n = scop[indx]->func[scop[indx]->func_n].para_n + 1;
-					key = 0;
-				}
-				else {
-					//error
-				}
-			}
-			else {
-				//error
-			}
-			
 			lex[0] = 0;
 			li = 0;
 		}
 		else if ((fx[fi] == '(') && !c) {								//next string
-			if (mod == 0 && li && key) {								//begin function parameters
-				if (!cu_func_str_cmp(scop[indx]->func, scop[indx]->func_n, lex)) {
-					scop[indx]->func[scop[indx]->func_n].type = key;
-					scop[indx]->func[scop[indx]->func_n].name = malloc(strlen(lex));
-					scop[indx]->func[scop[indx]->func_n].name_n = strlen(lex);
-					memcpy(scop[indx]->func[scop[indx]->func_n].name, lex, strlen(lex));
-					
-					scop[indx]->func[scop[indx]->func_n].para = malloc(sizeof(struct cu_var_s) * 255);
-					scop[indx]->func[scop[indx]->func_n].para_n = 0;
-					
-					scop[indx]->func[scop[indx]->func_n].var = malloc(sizeof(struct cu_var_s) * 255);
-					scop[indx]->func[scop[indx]->func_n].var_n = 0;
-					
-					scop[indx]->func[scop[indx]->func_n].func = malloc(sizeof(struct cu_func_s) * 255);
-					scop[indx]->func[scop[indx]->func_n].func_n = 0;
-					
-					scop[indx]->func[scop[indx]->func_n].op = malloc(sizeof(struct cu_op_s) * 1024);
-					scop[indx]->func[scop[indx]->func_n].op_n = 0;
-					
-					key = 0;
-					mod = 2;
-				}
-				else {
-					//error
-				}
-			}
-			else if (mod == 0 && li && !key) {						//function call
-				for (int8_t i = indx; i != -1; i--) {
-					if (cu_func_str_cmp(scop[i]->func, scop[i]->func_n, lex)) {
-						asn_scop = scop[i];
-						asn_indx = cu_func_str_cmp(scop[i]->func, scop[i]->func_n, lex) - 1;
-						mod = 6;
-						break;
-					}
-					else if (!i) {
-						//error, unknown function
-						
-					}
-				}
-			}
-			else {
-				//error
-			}
-			
 			lex[0] = 0;
 			li = 0;
 		}
 		else if ((fx[fi] == ')') && !c) { 								//next string
-			if (mod == 2 && key) {										//end function parameters
-				if (!cu_var_str_cmp(scop[indx]->func[scop[indx]->func_n].para, scop[indx]->func[scop[indx]->func_n].para_n, lex)) {
-					scop[indx]->func[scop[indx]->func_n].para[scop[indx]->func[scop[indx]->func_n].para_n].type = key;
-					scop[indx]->func[scop[indx]->func_n].para[scop[indx]->func[scop[indx]->func_n].para_n].name = malloc(strlen(lex));
-					scop[indx]->func[scop[indx]->func_n].para[scop[indx]->func[scop[indx]->func_n].para_n].name_n = strlen(lex);
-					memcpy(scop[indx]->func[scop[indx]->func_n].para[scop[indx]->func[scop[indx]->func_n].para_n].name, lex, strlen(lex));
-					scop[indx]->func[scop[indx]->func_n].para_n = scop[indx]->func[scop[indx]->func_n].para_n + 1;
-					
-					key = 0;
-					mod = 3;
-				}
-				else {
-					//error
-				}
-			}
-			else if (mod == 2) {
-				mod = 3;
-			}
-			else {
-				//error
-			}
-			
 			lex[0] = 0;
 			li = 0;
 		}
 		else if ((fx[fi] == '{') && !c) { //next string (begin function content)
-			if (mod == 3) {
-				scop[indx + 1] = &(scop[indx]->func[scop[indx]->func_n]);
-				indx = indx + 1;
-				mod = 0;
-			}
-			else {
-				//error
-			}
-			
 			lex[0] = 0;
 			li = 0;
 		}
 		else if ((fx[fi] == '}') && !c) { //next string (end function content)
-			if (mod == 0) {
-				indx = indx - 1;
-				scop[indx]->func_n = scop[indx]->func_n + 1;
-			}
-			else {
-				//error
-			}
-			
-			lex[0] = 0;
-			li = 0;
-		}
-		else if ((fx[fi] == ';') && !c) {
-			if (mod == 0) {
-				if (key == 30) { //return
-					if ((lex[0] >= 48 && lex[0] <= 57) || lex[0] == 45) {
-						scop[indx]->op[scop[indx]->op_n].type = 30;
-						scop[indx]->op[scop[indx]->op_n].src_type = 3;
-						scop[indx]->op[scop[indx]->op_n].src_imm = cu_str_int_dec(lex, e, path, ln);
-						scop[indx]->op_n = scop[indx]->op_n + 1;
-						
-						key = 0;
-					}
-				}
-				else if (!cu_var_str_cmp(scop[indx]->var, scop[indx]->var_n, lex)) {
-					scop[indx]->var[scop[indx]->var_n].type = key;
-					scop[indx]->var[scop[indx]->var_n].name = malloc(strlen(lex));
-					scop[indx]->var[scop[indx]->var_n].name_n = strlen(lex);
-					memcpy(scop[indx]->var[scop[indx]->var_n].name, lex, strlen(lex));
-					
-					scop[indx]->op[scop[indx]->op_n].type = key % 4;
-					scop[indx]->op[scop[indx]->op_n].dst_scop = scop[indx];
-					scop[indx]->op[scop[indx]->op_n].dst_indx = scop[indx]->var_n;
-					scop[indx]->op[scop[indx]->op_n].dst_type = 0;
-					scop[indx]->op_n = scop[indx]->op_n + 1;
-					
-					scop[indx]->var_n = scop[indx]->var_n + 1;
-					key = 0;
-					mod = 0;
-				}
-				else {
-					//error
-				}
-				key = 0;
-				mod = 0;
-			}
-			else if (mod == 3) {
-				scop[indx]->func_n = scop[indx]->func_n + 1;
-				mod = 0;
-			}
-			/*else if (mod == 4) {
-				func[func_n].var[func[func_n].var_n].type = key;
-				func[func_n].var[func[func_n].var_n].name = malloc(strlen(lex));
-				func[func_n].var[func[func_n].var_n].name_n = strlen(lex);
-				memcpy(func[func_n].var[func[func_n].var_n].name, lex, strlen(lex));
-				func[func_n].var_n = func[func_n].var_n + 1;
-				key = 0;
-				mod = 4;
-			}
-			else if (mod == 4) {
-				scop[indx]->op[scop[indx]->op_n].type = 9;
-				scop[indx]->op[scop[indx]->op_n].dst_scop = scop[i];
-				scop[indx]->op[scop[indx]->op_n].dst_indx = cu_func_str_cmp(scop[i]->func, scop[i]->func_n, lex);
-				scop[indx]->op[scop[indx]->op_n].dst_type = 2;
-				scop[indx]->op_n = scop[indx]->op_n + 1;
-			}*/
-			else if (mod == 5) {
-				if ((lex[0] >= 48 && lex[0] <= 57) || lex[0] == 45) {
-					if (asn_scop->var[asn_indx].type == 1) {
-						scop[indx]->op[scop[indx]->op_n].type = 5;
-						scop[indx]->op[scop[indx]->op_n].dst_scop = asn_scop;
-						scop[indx]->op[scop[indx]->op_n].dst_indx = asn_indx;
-						scop[indx]->op[scop[indx]->op_n].dst_type = 0;
-						
-						scop[indx]->op[scop[indx]->op_n].src_type = 3;
-						scop[indx]->op[scop[indx]->op_n].src_imm = cu_str_int_dec(lex, e, path, ln);
-						scop[indx]->op_n = scop[indx]->op_n + 1;
-					}
-					mod = 0;
-				}
-			}
-			else {
-				//error
-			}
-			
 			lex[0] = 0;
 			li = 0;
 		}
 	}
-	
-	cu_var_print(scop[indx]->var, scop[indx]->var_n);
-	cu_func_print(scop[indx]->func, scop[indx]->func_n);
-	
 	munmap(fx, fs.st_size);
-	return scop;
 }
 
 void cu_writ_bin(uint8_t* bin, uint64_t bn, struct au_sym_s* sym, uint64_t symn, struct au_sym_s* rel, uint64_t reln, int8_t* path) {
@@ -991,7 +555,12 @@ int8_t main(int32_t argc, int8_t** argv) {
 		
 	}
 	else if (!strcmp(argv[1], "x86-64")) {
-		cu_comp = x86_64_comp;
+		cu_enc_ent = x86_64_enc_ent;
+		cu_enc_exit = x86_64_enc_exit;
+		cu_enc_dec_8 = x86_64_enc_dec_8;
+		cu_enc_dec_16 = x86_64_enc_dec_16;
+		cu_enc_dec_32 = x86_64_enc_dec_32;
+		cu_enc_dec_64 = x86_64_enc_dec_64;
 	}
 	else {
 		printf("error: unsupported architecture\n");
@@ -1022,10 +591,9 @@ int8_t main(int32_t argc, int8_t** argv) {
 	uint64_t reln = 0;
 	int8_t e = 0;
 	
-	struct cu_func_s** scop = cu_lex(bin, &bn, argv[2], &e, 4);
+	cu_lex(bin, &bn, argv[2], sym, &symn, rel, &reln, &e);
 	
 	if (!e) {
-		cu_comp(bin, &bn, sym, &symn, rel, &reln, scop[0]);
 		cu_writ(bin, bn, sym, symn, rel, reln, argv[3]);
 	}
 	

@@ -14,4 +14,15 @@
 
 //   sub umbra alarum suarum
 
-void x86_64_comp(uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, struct au_sym_s*, uint64_t*, struct cu_func_s*);
+void x86_64_enc_ent(uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, struct au_sym_s*, uint64_t*);
+
+void x86_64_enc_exit(uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, struct au_sym_s*, uint64_t*);
+
+void x86_64_enc_dec_8(uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, struct au_sym_s*, uint64_t*);
+
+void x86_64_enc_dec_16(uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, struct au_sym_s*, uint64_t*);
+
+void x86_64_enc_dec_32(uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, struct au_sym_s*, uint64_t*);
+
+void x86_64_enc_dec_64(uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, struct au_sym_s*, uint64_t*);
+

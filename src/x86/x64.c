@@ -31,43 +31,6 @@ struct au_sym_s {
 	uint8_t typ;
 };
 
-struct cu_var_s {
-	uint8_t type;				//variable type
-	uint8_t* name;				//variable name
-	uint8_t name_n;				//name length
-};
-
-struct cu_func_s {
-	uint8_t type;				//return type
-	uint8_t* name;				//function name
-	uint8_t name_n;				//name length
-	
-	struct cu_var_s* para;		//parameters
-	uint8_t para_n;				//number of parameters
-	
-	struct cu_var_s* var;		//local variables
-	uint64_t var_n;				//number of local variables
-	
-	struct cu_func_s* func;		//local functions
-	uint64_t func_n;			//number of local functions
-	
-	struct cu_op_s* op;			//operations
-	uint64_t op_n;				//number of operations
-};
-
-struct cu_op_s {
-	uint8_t type;				//operation type
-	
-	struct cu_func_s* dst_scop;	//scope for destination variable
-	uint64_t dst_indx;			//index for destination variable
-	uint8_t dst_type;			//0 for variable, 1 for parameter, 2 for function
-	
-	struct cu_func_s* src_scop;	//scope for source variable
-	uint64_t src_indx;			//index for source variable
-	uint8_t src_type;			//0 for variable, 1 for parameter, 2 for function, 3 for immediate
-	uint64_t src_imm;			//immediate
-};
-
 void x86_64_inst_byt(uint8_t* bin, uint64_t* bn, uint8_t a) {
 	bin[*bn] = a;
 	(*bn)++;
@@ -308,150 +271,35 @@ the return operation will pop the return address off the stack, leaving the retu
 
 */
 
-void x86_64_comp(uint8_t* bin, uint64_t* bn, struct au_sym_s* sym, uint64_t* symn, struct au_sym_s* rel, uint64_t* reln, struct cu_func_s* scop) {
-	//entry call to the main function, insert any pre-main entry code here
-	rel[0].str = malloc(5);
-	memcpy(rel[0].str, "main", 5);
-	rel[0].len = 5;
-	rel[0].addr = *bn;
-	rel[0].typ = 3;
+void x86_64_enc_ent(uint8_t* bin, uint64_t* bn, struct au_sym_s* sym, uint64_t* symn, struct au_sym_s* rel, uint64_t* reln) {
+	rel[*reln].str = malloc(5);
+	memcpy(rel[*reln].str, "main", 5);
+	rel[*reln].len = 5;
+	rel[*reln].addr = *bn;
+	rel[*reln].typ = 3;
 	*reln = 1;
-
-	sym[0].str = malloc(5);
-	memcpy(sym[0].str, "_ent", 5);
-	sym[0].len = 5;
-	sym[0].addr = *bn;
-	sym[0].typ = 0;
-	*symn += 1;
 	
 	x86_64_enc_call_imm(bin, bn, 0);
-	
-	sym[1].str = malloc(15);
-	memcpy(sym[1].str, "_print_ret_val", 15);
-	sym[1].len = 15;
-	sym[1].addr = *bn;
-	sym[1].typ = 0;
-	*symn += 1;
-	
-	x86_64_enc_pop_reg(bin, bn, 48); //pop rax
-	x86_64_enc_mov_reg_imm(bin, bn, 49, 10); //mov rcx, 10
-	x86_64_enc_shl_reg_imm(bin, bn, 49, 8); //shl rcx, 8
-	x86_64_enc_add_reg_reg(bin, bn, 49, 48); //add rcx, rax
-	x86_64_enc_add_reg_imm(bin, bn, 49, 48); //add rcx, 48
-	x86_64_enc_push_reg(bin, bn, 49); //push rcx 
-	
-	x86_64_enc_mov_reg_imm(bin, bn, 55, 1); //mov rdi, 1
-	x86_64_enc_mov_reg_reg(bin, bn, 54, 52); //mov rsi, rsp
-	x86_64_enc_mov_reg_imm(bin, bn, 50, 2); //mov rdx, 2
-	x86_64_enc_mov_reg_imm(bin, bn, 48, 1); //mov rax, 1
-	x86_64_enc_syscall(bin, bn); //syscall
-	
-	sym[2].str = malloc(6);
-	memcpy(sym[2].str, "_exit", 6);
-	sym[2].len = 6;
-	sym[2].addr = *bn;
-	sym[2].typ = 0;
-	*symn += 1;
-	
+}
+
+void x86_64_enc_exit(uint8_t* bin, uint64_t* bn, struct au_sym_s* sym, uint64_t* symn, struct au_sym_s* rel, uint64_t* reln) {
 	x86_64_enc_mov_reg_imm(bin, bn, 55, 0); //mov rdi, 0
 	x86_64_enc_mov_reg_imm(bin, bn, 48, 60); //mov rax, 60
 	x86_64_enc_syscall(bin, bn); //syscall
-	
-	//functions for moving contents of register rax onto the stack
+}
 
-	//NOTE, these functions are not actually called, calling them would slow down execution, this is just a table for code that is regularly used throughout
-
-	sym[3].str = malloc(7);
-	memcpy(sym[3].str, "_mov_8", 7);
-	sym[3].len = 7;
-	sym[3].addr = *bn;
-	sym[3].typ = 0;
-	*symn += 1;
-
-	x86_64_enc_pop_reg(bin, bn, 50); //pop rdx
-	x86_64_enc_mov_reg_addr_disp(bin, bn, 49, 52, 0); //mov rcx, (rsp)
-	x86_64_enc_shl_reg_imm(bin, bn, 49, 8); //shl rcx, 8
-	x86_64_enc_or_reg_reg(bin, bn, 48, 49); //or rax, rcx
+void x86_64_enc_dec_8(uint8_t* bin, uint64_t* bn, struct au_sym_s* sym, uint64_t* symn, struct au_sym_s* rel, uint64_t* reln) {
 	x86_64_enc_add_reg_imm(bin, bn, 52, 1); //add rsp, 1
-	x86_64_enc_mov_addr_disp_reg(bin, bn, 52, 0, 48); //mov (rsp), rax
-	x86_64_enc_push_reg(bin, bn, 50); //push rdx
-	x86_64_enc_ret(bin, bn); //ret
-	
-	
-	sym[4].str = malloc(8);
-	memcpy(sym[4].str, "_mov_16", 8);
-	sym[4].len = 8;
-	sym[4].addr = *bn;
-	sym[4].typ = 0;
-	*symn += 1;
+}
 
-	x86_64_enc_pop_reg(bin, bn, 50); //pop rdx
-	x86_64_enc_mov_reg_addr_disp(bin, bn, 49, 52, 0); //mov rcx, (rsp)
-	x86_64_enc_shl_reg_imm(bin, bn, 49, 16); //shl rcx, 16
-	x86_64_enc_or_reg_reg(bin, bn, 48, 49); //or rax, rcx
+void x86_64_enc_dec_16(uint8_t* bin, uint64_t* bn, struct au_sym_s* sym, uint64_t* symn, struct au_sym_s* rel, uint64_t* reln) {
 	x86_64_enc_add_reg_imm(bin, bn, 52, 2); //add rsp, 2
-	x86_64_enc_mov_addr_disp_reg(bin, bn, 52, 0, 48); //mov (rsp), rax
-	x86_64_enc_push_reg(bin, bn, 50); //push rdx
-	x86_64_enc_ret(bin, bn); //ret
+}
 
-
-	sym[5].str = malloc(8);
-	memcpy(sym[5].str, "_mov_32", 8);
-	sym[5].len = 8;
-	sym[5].addr = *bn;
-	sym[5].typ = 0;
-	*symn += 1;
-	
-	x86_64_enc_pop_reg(bin, bn, 50); //pop rdx
-	x86_64_enc_mov_reg_addr_disp(bin, bn, 49, 52, 0); //mov rcx, (rsp)
-	x86_64_enc_shl_reg_imm(bin, bn, 49, 32); //shl rcx, 32
-	x86_64_enc_or_reg_reg(bin, bn, 48, 49); //or rax, rcx
+void x86_64_enc_dec_32(uint8_t* bin, uint64_t* bn, struct au_sym_s* sym, uint64_t* symn, struct au_sym_s* rel, uint64_t* reln) {
 	x86_64_enc_add_reg_imm(bin, bn, 52, 4); //add rsp, 4
-	x86_64_enc_mov_addr_disp_reg(bin, bn, 52, 0, 48); //mov (rsp), rax
-	x86_64_enc_push_reg(bin, bn, 50); //push rdx
-	x86_64_enc_ret(bin, bn); //ret
-	
-	sym[6].str = malloc(8);
-	memcpy(sym[6].str, "_mov_64", 8);
-	sym[6].len = 8;
-	sym[6].addr = *bn;
-	sym[6].typ = 0;
-	*symn += 1;
-	
-	x86_64_enc_pop_reg(bin, bn, 50); //pop rdx
-	x86_64_enc_add_reg_imm(bin, bn, 52, 4); //add rsp, 4
-	x86_64_enc_mov_addr_disp_reg(bin, bn, 52, 0, 48); //mov (rsp), rax
-	x86_64_enc_push_reg(bin, bn, 50); //push rdx
-	x86_64_enc_ret(bin, bn); //ret
+}
 
-	
-	for (uint64_t i = 0; i < scop->func_n; i++) {
-		//create new symbol
-		sym[*symn].str = scop->func[i].name;
-		sym[*symn].len = scop->func[i].name_n;
-		sym[*symn].addr = *bn;
-		*symn = *symn + 1;
-		
-		for (uint64_t j = 0; j < scop->func[i].op_n; j++) {
-			if (scop->func[i].op[j].type == 30) {
-				//remove all local variables from the stack
-				
-				//save the return address
-				x86_64_enc_pop_reg(bin, bn, 48); //pop rax
-				
-				//remove all parameters from the stack
-				
-				//push the return value onto the stack
-				if (scop->func[i].op[j].src_type == 3) {
-					x86_64_enc_push_imm(bin, bn, scop->func[i].op[j].src_imm); //push (return value)
-				}
-				
-				//push the return address back onto the stack
-				x86_64_enc_push_reg(bin, bn, 48); //push rax
-				
-				x86_64_enc_ret(bin, bn); //ret
-			}
-		}
-		
-	}
+void x86_64_enc_dec_64(uint8_t* bin, uint64_t* bn, struct au_sym_s* sym, uint64_t* symn, struct au_sym_s* rel, uint64_t* reln) {
+	x86_64_enc_add_reg_imm(bin, bn, 52, 8); //add rsp, 8
 }
