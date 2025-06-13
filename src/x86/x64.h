@@ -18,11 +18,19 @@ void x86_64_enc_ent(uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, struct au_
 
 void x86_64_enc_exit(uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, struct au_sym_s*, uint64_t*);
 
-void x86_64_enc_dec_8(uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, struct au_sym_s*, uint64_t*);
+void x86_64_enc_loc_dec_8(uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, struct au_sym_s*, uint64_t*);
 
-void x86_64_enc_dec_16(uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, struct au_sym_s*, uint64_t*);
+void x86_64_enc_loc_dec_16(uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, struct au_sym_s*, uint64_t*);
 
-void x86_64_enc_dec_32(uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, struct au_sym_s*, uint64_t*);
+void x86_64_enc_loc_dec_32(uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, struct au_sym_s*, uint64_t*);
 
-void x86_64_enc_dec_64(uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, struct au_sym_s*, uint64_t*);
+void x86_64_enc_loc_dec_64(uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, struct au_sym_s*, uint64_t*);
+
+void x86_64_enc_glo_dec_8(uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t*, uint8_t);
+
+void x86_64_enc_glo_dec_16(uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t*, uint8_t);
+
+void x86_64_enc_glo_dec_32(uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t*, uint8_t);
+
+void x86_64_enc_glo_dec_64(uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t*, uint8_t);
 

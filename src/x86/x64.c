@@ -288,18 +288,62 @@ void x86_64_enc_exit(uint8_t* bin, uint64_t* bn, struct au_sym_s* sym, uint64_t*
 	x86_64_enc_syscall(bin, bn); //syscall
 }
 
-void x86_64_enc_dec_8(uint8_t* bin, uint64_t* bn, struct au_sym_s* sym, uint64_t* symn, struct au_sym_s* rel, uint64_t* reln) {
+void x86_64_enc_loc_dec_8(uint8_t* bin, uint64_t* bn, struct au_sym_s* sym, uint64_t* symn, struct au_sym_s* rel, uint64_t* reln) {
 	x86_64_enc_add_reg_imm(bin, bn, 52, 1); //add rsp, 1
 }
 
-void x86_64_enc_dec_16(uint8_t* bin, uint64_t* bn, struct au_sym_s* sym, uint64_t* symn, struct au_sym_s* rel, uint64_t* reln) {
+void x86_64_enc_loc_dec_16(uint8_t* bin, uint64_t* bn, struct au_sym_s* sym, uint64_t* symn, struct au_sym_s* rel, uint64_t* reln) {
 	x86_64_enc_add_reg_imm(bin, bn, 52, 2); //add rsp, 2
 }
 
-void x86_64_enc_dec_32(uint8_t* bin, uint64_t* bn, struct au_sym_s* sym, uint64_t* symn, struct au_sym_s* rel, uint64_t* reln) {
+void x86_64_enc_loc_dec_32(uint8_t* bin, uint64_t* bn, struct au_sym_s* sym, uint64_t* symn, struct au_sym_s* rel, uint64_t* reln) {
 	x86_64_enc_add_reg_imm(bin, bn, 52, 4); //add rsp, 4
 }
 
-void x86_64_enc_dec_64(uint8_t* bin, uint64_t* bn, struct au_sym_s* sym, uint64_t* symn, struct au_sym_s* rel, uint64_t* reln) {
+void x86_64_enc_loc_dec_64(uint8_t* bin, uint64_t* bn, struct au_sym_s* sym, uint64_t* symn, struct au_sym_s* rel, uint64_t* reln) {
 	x86_64_enc_add_reg_imm(bin, bn, 52, 8); //add rsp, 8
+}
+
+void x86_64_enc_glo_dec_8(uint8_t* bin, uint64_t* bn, struct au_sym_s* sym, uint64_t* symn, struct au_sym_s* rel, uint64_t* reln, uint8_t* str, uint8_t strn) {
+	sym[*symn].str = malloc(strn);
+	memcpy(sym[*symn].str, str, strn);
+	sym[*symn].len = strn;
+	sym[*symn].addr = *bn;
+	sym[*symn].typ = 0;
+	*symn = *symn + 1;
+	
+	x86_64_inst_byt(bin, bn, 0);
+}
+
+void x86_64_enc_glo_dec_16(uint8_t* bin, uint64_t* bn, struct au_sym_s* sym, uint64_t* symn, struct au_sym_s* rel, uint64_t* reln, uint8_t* str, uint8_t strn) {
+	sym[*symn].str = malloc(strn);
+	memcpy(sym[*symn].str, str, strn);
+	sym[*symn].len = strn;
+	sym[*symn].addr = *bn;
+	sym[*symn].typ = 0;
+	*symn = *symn + 1;
+	
+	x86_64_inst_k16(bin, bn, 0);
+}
+
+void x86_64_enc_glo_dec_32(uint8_t* bin, uint64_t* bn, struct au_sym_s* sym, uint64_t* symn, struct au_sym_s* rel, uint64_t* reln, uint8_t* str, uint8_t strn) {
+	sym[*symn].str = malloc(strn);
+	memcpy(sym[*symn].str, str, strn);
+	sym[*symn].len = strn;
+	sym[*symn].addr = *bn;
+	sym[*symn].typ = 0;
+	*symn = *symn + 1;
+	
+	x86_64_inst_k32(bin, bn, 0);
+}
+
+void x86_64_enc_glo_dec_64(uint8_t* bin, uint64_t* bn, struct au_sym_s* sym, uint64_t* symn, struct au_sym_s* rel, uint64_t* reln, uint8_t* str, uint8_t strn) {
+	sym[*symn].str = malloc(strn);
+	memcpy(sym[*symn].str, str, strn);
+	sym[*symn].len = strn;
+	sym[*symn].addr = *bn;
+	sym[*symn].typ = 3;
+	*symn = *symn + 1;
+	
+	x86_64_inst_k64(bin, bn, 0);
 }
