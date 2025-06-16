@@ -57,13 +57,13 @@ void (*cu_enc_loc_load_reg_32) (uint8_t*, uint64_t*, uint8_t, uint32_t);
 
 void (*cu_enc_loc_load_reg_64) (uint8_t*, uint64_t*, uint8_t, uint32_t);
 
-void (*cu_enc_loc_str_8) (uint8_t*, uint64_t*, uint8_t, uint32_t);
+void (*cu_enc_loc_str_8) (uint8_t*, uint64_t*, uint32_t);
 
-void (*cu_enc_loc_str_16) (uint8_t*, uint64_t*, uint8_t, uint32_t);
+void (*cu_enc_loc_str_16) (uint8_t*, uint64_t*, uint32_t);
 
-void (*cu_enc_loc_str_32) (uint8_t*, uint64_t*, uint8_t, uint32_t);
+void (*cu_enc_loc_str_32) (uint8_t*, uint64_t*, uint32_t);
 
-void (*cu_enc_loc_str_64) (uint8_t*, uint64_t*, uint8_t, uint32_t);
+void (*cu_enc_loc_str_64) (uint8_t*, uint64_t*, uint32_t);
 
 void (*cu_enc_glo_dec_8) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t*, uint8_t);
 
@@ -256,7 +256,7 @@ uint8_t cu_str_key(uint8_t* str) {
 	else if (!strcmp(str, "uint32_t")) {
 		return 3;
 	}
-	else if (!strcmp(str, "uin64_t")) {
+	else if (!strcmp(str, "uint64_t")) {
 		return 4;
 	}
 	
@@ -358,7 +358,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 	struct cu_var_s stack[65536];
 	uint16_t stack_n = 1;
 
-	uint16_t stack_i = 0; //variable assignment
+	uint16_t stack_dst = 0; //variable assignment
 	
 	cu_enc_ent(bin, bn, rel, reln); 
 	cu_enc_exit(bin, bn);
@@ -403,14 +403,83 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 		}
 		return 0;
 	}
+
+	void end_assign() {
+		if (!stack[stack_dst].scop) {
+			if (stack[stack_dst].type == 1 || stack[stack_dst].type == 5) {
+				//cu_enc_glo_load_reg_8(bin, bn, rel, reln);
+			}
+			else if (stack[stack_dst].type == 2 || stack[stack_dst].type == 6) {
+				//cu_enc_glo_load_reg_8(bin, bn, rel, reln);
+			}
+			else if (stack[stack_dst].type == 3 || stack[stack_dst].type == 7) {
+				//cu_enc_glo_load_reg_8(bin, bn, rel, reln);
+				}
+			else if (stack[stack_dst].type == 4 || stack[stack_dst].type == 8) {
+				//cu_enc_glo_load_reg_8(bin, bn, rel, reln);
+			}
+		}
+		else {
+			if (stack[stack_dst].type == 1 || stack[stack_dst].type == 5) {
+				cu_enc_loc_str_8(bin, bn, stack[stack_dst].indx);
+			}
+			else if (stack[stack_dst].type == 2 || stack[stack_dst].type == 6) {
+				cu_enc_loc_str_16(bin, bn, stack[stack_dst].indx);
+			}
+			else if (stack[stack_dst].type == 3 || stack[stack_dst].type == 7) {
+				cu_enc_loc_str_32(bin, bn, stack[stack_dst].indx);
+			}
+			else if (stack[stack_dst].type == 4 || stack[stack_dst].type == 8) {
+				cu_enc_loc_str_64(bin, bn, stack[stack_dst].indx);
+			}
+		}
+		mod = 0;
+	}
 	
 	void next_str() {
-		if (!key && !stack_i) {
+		if (mod == 1) {
+			uint16_t stack_src = fnd_stack(lex);
+			if (stack_src) {
+				if (!stack[stack_src].scop) {
+					if (stack[stack_src].type == 1 || stack[stack_src].type == 5) {
+						//cu_enc_glo_load_reg_8(bin, bn, rel, reln);
+					}
+					else if (stack[stack_src].type == 2 || stack[stack_src].type == 6) {
+						//cu_enc_glo_load_reg_8(bin, bn, rel, reln);
+					}
+					else if (stack[stack_src].type == 3 || stack[stack_src].type == 7) {
+						//cu_enc_glo_load_reg_8(bin, bn, rel, reln);
+					}
+					else if (stack[stack_src].type == 4 || stack[stack_src].type == 8) {
+						//cu_enc_glo_load_reg_8(bin, bn, rel, reln);
+					}
+				}
+				else {
+					if (stack[stack_src].type == 1 || stack[stack_src].type == 5) {
+						cu_enc_loc_load_reg_8(bin, bn, 0, stack[stack_src].indx);
+					}
+					else if (stack[stack_src].type == 2 || stack[stack_src].type == 6) {
+						cu_enc_loc_load_reg_16(bin, bn, 0, stack[stack_src].indx);
+					}
+					else if (stack[stack_src].type == 3 || stack[stack_src].type == 7) {
+						cu_enc_loc_load_reg_32(bin, bn, 0, stack[stack_src].indx);
+					}
+					else if (stack[stack_src].type == 4 || stack[stack_src].type == 8) {
+						cu_enc_loc_load_reg_64(bin, bn, 0, stack[stack_src].indx);
+					}
+				}
+			}
+			else {
+				uint64_t k = cu_str_int_dec(lex, e, path, ln);
+				cu_enc_load_reg_imm(bin, bn, 0, k);
+			}
+		}
+		else if (!key && !stack_dst) {
 			key = cu_str_key(lex);
 			if (!key) {
-				stack_i = fnd_stack(lex);
+				stack_dst = fnd_stack(lex);
 			}
-			if (!key && !stack_i) {
+			if (!key && !stack_dst) {
 				printf("[%s, %lu] error: undeclared variable  '%s'\n", path, ln, lex);
 				//*e = -1;
 			}
@@ -425,7 +494,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				stack[stack_n].indx = 0;
 				stack[stack_n].scop = brackt_n;
 				inc_stack(1);
-				stack_i = stack_n;
+				stack_dst = stack_n;
 				stack_n = stack_n + 1;
 			}
 			else if (key == 2 || key == 6) {
@@ -437,7 +506,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				stack[stack_n].indx = 0;
 				stack[stack_n].scop = brackt_n;
 				inc_stack(2);
-				stack_i = stack_n;
+				stack_dst = stack_n;
 				stack_n = stack_n + 1;
 			}
 			else if (key == 3 || key == 7) {
@@ -449,7 +518,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				stack[stack_n].indx = 0;
 				stack[stack_n].scop = brackt_n;
 				inc_stack(4);
-				stack_i = stack_n;
+				stack_dst = stack_n;
 				stack_n = stack_n + 1;
 			}
 			else if (key == 4 || key == 8) {
@@ -461,7 +530,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				stack[stack_n].indx = 0;
 				stack[stack_n].scop = brackt_n;
 				inc_stack(8);
-				stack_i = stack_n;
+				stack_dst = stack_n;
 				stack_n = stack_n + 1;
 			}
 			key = 0;
@@ -476,7 +545,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				stack[stack_n].indx = 0;
 				stack[stack_n].scop = brackt_n;
 				inc_stack(1);
-				stack_i = stack_n;
+				stack_dst = stack_n;
 				stack_n = stack_n + 1;
 			}
 			else if (key == 2 || key == 6) {
@@ -488,7 +557,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				stack[stack_n].indx = 0;
 				stack[stack_n].scop = brackt_n;
 				inc_stack(2);
-				stack_i = stack_n;
+				stack_dst = stack_n;
 				stack_n = stack_n + 1;
 			}
 			else if (key == 3 || key == 7) {
@@ -500,7 +569,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				stack[stack_n].indx = 0;
 				stack[stack_n].scop = brackt_n;
 				inc_stack(4);
-				stack_i = stack_n;
+				stack_dst = stack_n;
 				stack_n = stack_n + 1;
 			}
 			else if (key == 4 || key == 8) {
@@ -512,7 +581,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				stack[stack_n].indx = 0;
 				stack[stack_n].scop = brackt_n;
 				inc_stack(8);
-				stack_i = stack_n;
+				stack_dst = stack_n;
 				stack_n = stack_n + 1;
 			}
 			key = 0;
@@ -626,6 +695,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			if (li) {
 				next_str();
 			}
+			mod = 1;
 		}
 		else if ((fx[fi] == '>') && (fx[fi + 1] == '=') && !c) { //logical greater than or equal to
 			if (li) {
@@ -688,46 +758,38 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			if (li) {
 				next_str();
 			}
-			stack_i = 0;
-			mod = 0;
-			lex[0] = 0;
-			li = 0;
+			if (mod == 1) {
+				end_assign();
+			}
+			stack_dst = 0;
 		}
 		else if ((fx[fi] == '(') && !c) {
 			if (li) {
 				next_str();
 			}
-			lex[0] = 0;
-			li = 0;
 		}
 		else if ((fx[fi] == ')') && !c) { 
 			if (li) {
 				next_str();
 			}
-			lex[0] = 0;
-			li = 0;
 		}
 		else if ((fx[fi] == '{') && !c) { //next string (begin function content)
 			if (li) {
 				next_str();
 			}
 			brackt_n = brackt_n + 1;
-			lex[0] = 0;
-			li = 0;
 		}
 		else if ((fx[fi] == '}') && !c) { //next string (end function content)
 			if (li) {
 				next_str();
 			}
-			if (key || stack_i) {
+			if (key || stack_dst) {
 				//error
 			}
 			else {
 				dec_stack(brackt_n);
 			}
 			brackt_n = brackt_n - 1;
-			lex[0] = 0;
-			li = 0;
 		}
 	}
 	munmap(fx, fs.st_size);

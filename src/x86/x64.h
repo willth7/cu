@@ -36,13 +36,13 @@ void x86_64_enc_loc_load_reg_32(uint8_t*, uint64_t*, uint8_t, uint32_t);
 
 void x86_64_enc_loc_load_reg_64(uint8_t*, uint64_t*, uint8_t, uint32_t);
 
-void x86_64_enc_loc_str_8(uint8_t*, uint64_t*, uint8_t, uint32_t);
+void x86_64_enc_loc_str_8(uint8_t*, uint64_t*, uint32_t);
 
-void x86_64_enc_loc_str_16(uint8_t*, uint64_t*, uint8_t, uint32_t);
+void x86_64_enc_loc_str_16(uint8_t*, uint64_t*, uint32_t);
 
-void x86_64_enc_loc_str_32(uint8_t*, uint64_t*, uint8_t, uint32_t);
+void x86_64_enc_loc_str_32(uint8_t*, uint64_t*, uint32_t);
 
-void x86_64_enc_loc_str_64(uint8_t*, uint64_t*, uint8_t, uint32_t);
+void x86_64_enc_loc_str_64(uint8_t*, uint64_t*, uint32_t);
 
 void x86_64_enc_glo_dec_8(uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t*, uint8_t);
 
