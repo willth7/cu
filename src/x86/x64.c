@@ -434,7 +434,7 @@ void x86_64_enc_glo_str_8(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uint
 	rel[*reln].typ = 4;
 	*reln = *reln + 1;
 	
-	//lea rdx, (rip, [rel])
+	x86_64_enc_lea_reg_addr_disp(bin, bn, 50, 117, 0); //lea rdx, (rip, [rel])
 	x86_64_enc_mov_reg_addr_disp(bin, bn, 49, 50, 1); //mov rcx, (rdx, 1)
 	x86_64_enc_shl_reg_imm(bin, bn, 49, 8); //shl rcx, 8
 	x86_64_enc_or_reg_reg(bin, bn, 48, 49); //or rax, rcx
@@ -449,11 +449,11 @@ void x86_64_enc_glo_str_16(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uin
 	rel[*reln].typ = 4;
 	*reln = *reln + 1;
 	
-	//lea rdx, (rip, [rel])
-	//mov rcx, (rdx, 2)
-	//shl rcx, 16
-	//or rax, rcx
-	//mov (rdx), rax
+	x86_64_enc_lea_reg_addr_disp(bin, bn, 50, 117, 0); //lea rdx, (rip, [rel])
+	x86_64_enc_mov_reg_addr_disp(bin, bn, 49, 50, 2); //mov rcx, (rdx, 2)
+	x86_64_enc_shl_reg_imm(bin, bn, 49, 16); //shl rcx, 16
+	x86_64_enc_or_reg_reg(bin, bn, 48, 49); //or rax, rcx
+	x86_64_enc_mov_addr_disp_reg(bin, bn, 50, 0, 48); //mov (rdx), rax
 }
 
 void x86_64_enc_glo_str_32(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uint64_t* reln, uint8_t* str, uint8_t strn) {
@@ -464,11 +464,11 @@ void x86_64_enc_glo_str_32(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uin
 	rel[*reln].typ = 4;
 	*reln = *reln + 1;
 	
-	//lea rdx, (rip, [rel])
-	//mov rcx, (rdx, 4)
-	//shl rcx, 32
-	//or rax, rcx
-	//mov (rdx), rax
+	x86_64_enc_lea_reg_addr_disp(bin, bn, 50, 117, 0); //lea rdx, (rip, [rel])
+	x86_64_enc_mov_reg_addr_disp(bin, bn, 49, 50, 4); //mov rcx, (rdx, 4)
+	x86_64_enc_shl_reg_imm(bin, bn, 49, 32); //shl rcx, 32
+	x86_64_enc_or_reg_reg(bin, bn, 48, 49); //or rax, rcx
+	x86_64_enc_mov_addr_disp_reg(bin, bn, 50, 0, 48); //mov (rdx), rax
 }
 
 void x86_64_enc_glo_str_64(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uint64_t* reln, uint8_t* str, uint8_t strn) {
@@ -479,6 +479,6 @@ void x86_64_enc_glo_str_64(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uin
 	rel[*reln].typ = 4;
 	*reln = *reln + 1;
 	
-	//lea rdx, (rip, [rel])
-	//mov (rdx), rax
+	x86_64_enc_lea_reg_addr_disp(bin, bn, 50, 117, 0); //lea rdx, (rip, [rel])
+	x86_64_enc_mov_addr_disp_reg(bin, bn, 50, 0, 48); //mov (rdx), rax
 }
