@@ -57,9 +57,10 @@ void (*cu_enc_glo_dec_64) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, str
 
 
 struct cu_var_s {
-	uint8_t* str;
-	uint8_t type;
-	uint8_t indx;
+	uint8_t* str; //variable name
+	uint8_t type; //variable type
+	uint8_t indx; //index into stack
+	uint8_t scop; //level of scope, number of brackets
 };
 
 /*	operation types
@@ -355,169 +356,123 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			stack[i].indx = stack[i].indx + sz;
 		}
 	}
+
+	void dec_stack(uint8_t scop) {
+		for (uint16_t i = stack_n; i != 0; i--) {
+			if (stack[i - 1].scop != scop) {
+				break;
+			}
+			else {
+				for (uint16_t j = 0; j < stack_n; j++) {
+					if (stack[i - 1].type == 1 || stack[i - 1].type == 5) {
+						stack[j].indx = stack[j].indx - 1;
+					}
+					else if (stack[i - 1].type == 2 || stack[i - 1].type == 6) {
+						stack[j].indx = stack[j].indx - 2;
+					}
+					else if (stack[i - 1].type == 3 || stack[i - 1].type == 7) {
+						stack[j].indx = stack[j].indx - 4;
+					}
+					else if (stack[i - 1].type == 4 || stack[i - 1].type == 8) {
+						stack[j].indx = stack[j].indx - 8;
+					}
+				}
+				free(stack[i - 1].str);
+				stack_n = stack_n - 1;
+			}
+		}
+	}
 	
 	void next_str() {
 		if (key && !brackt_n) {
-			if (key == 1) {
+			if (key == 1 || key == 5) {
 				cu_enc_glo_dec_8(bin, bn, sym, symn, rel, reln, lex, li);
 				
 				stack[stack_n].str = malloc(li);
 				memcpy(stack[stack_n].str, lex, li);
 				stack[stack_n].type = key;
 				stack[stack_n].indx = 0;
+				stack[stack_n].scop = brackt_n;
 				inc_stack(1);
 				stack_n = stack_n + 1;
 			}
-			else if (key == 2) {
+			else if (key == 2 || key == 6) {
 				cu_enc_glo_dec_16(bin, bn, sym, symn, rel, reln, lex, li);
 				
 				stack[stack_n].str = malloc(li);
 				memcpy(stack[stack_n].str, lex, li);
 				stack[stack_n].type = key;
 				stack[stack_n].indx = 0;
+				stack[stack_n].scop = brackt_n;
 				inc_stack(2);
 				stack_n = stack_n + 1;
 			}
-			else if (key == 3) {
+			else if (key == 3 || key == 7) {
 				cu_enc_glo_dec_32(bin, bn, sym, symn, rel, reln, lex, li);
 				
 				stack[stack_n].str = malloc(li);
 				memcpy(stack[stack_n].str, lex, li);
 				stack[stack_n].type = key;
 				stack[stack_n].indx = 0;
+				stack[stack_n].scop = brackt_n;
 				inc_stack(4);
 				stack_n = stack_n + 1;
 			}
-			else if (key == 4) {
+			else if (key == 4 || key == 8) {
 				cu_enc_glo_dec_64(bin, bn, sym, symn, rel, reln, lex, li);
 				
 				stack[stack_n].str = malloc(li);
 				memcpy(stack[stack_n].str, lex, li);
 				stack[stack_n].type = key;
 				stack[stack_n].indx = 0;
-				inc_stack(8);
-				stack_n = stack_n + 1;
-			}
-			else if (key == 5) {
-				cu_enc_glo_dec_8(bin, bn, sym, symn, rel, reln, lex, li);
-				
-				stack[stack_n].str = malloc(li);
-				memcpy(stack[stack_n].str, lex, li);
-				stack[stack_n].type = key;
-				stack[stack_n].indx = 0;
-				inc_stack(1);
-				stack_n = stack_n + 1;
-			}
-			else if (key == 6) {
-				cu_enc_glo_dec_16(bin, bn, sym, symn, rel, reln, lex, li);
-				
-				stack[stack_n].str = malloc(li);
-				memcpy(stack[stack_n].str, lex, li);
-				stack[stack_n].type = key;
-				stack[stack_n].indx = 0;
-				inc_stack(2);
-				stack_n = stack_n + 1;
-			}
-			else if (key == 7) {
-				cu_enc_glo_dec_32(bin, bn, sym, symn, rel, reln, lex, li);
-				
-				stack[stack_n].str = malloc(li);
-				memcpy(stack[stack_n].str, lex, li);
-				stack[stack_n].type = key;
-				stack[stack_n].indx = 0;
-				inc_stack(4);
-				stack_n = stack_n + 1;
-			}
-			else if (key == 8) {
-				cu_enc_glo_dec_64(bin, bn, sym, symn, rel, reln, lex, li);
-				
-				stack[stack_n].str = malloc(li);
-				memcpy(stack[stack_n].str, lex, li);
-				stack[stack_n].type = key;
-				stack[stack_n].indx = 0;
+				stack[stack_n].scop = brackt_n;
 				inc_stack(8);
 				stack_n = stack_n + 1;
 			}
 			key = 0;
 		}
 		else if (key && brackt_n) {
-			if (key == 1) {
+			if (key == 1 || key == 5) {
 				cu_enc_loc_dec_8(bin, bn, sym, symn, rel, reln);
 				
 				stack[stack_n].str = malloc(li);
 				memcpy(stack[stack_n].str, lex, li);
 				stack[stack_n].type = key;
 				stack[stack_n].indx = 0;
+				stack[stack_n].scop = brackt_n;
 				inc_stack(1);
 				stack_n = stack_n + 1;
 			}
-			else if (key == 2) {
+			else if (key == 2 || key == 6) {
 				cu_enc_loc_dec_16(bin, bn, sym, symn, rel, reln);
 				
 				stack[stack_n].str = malloc(li);
 				memcpy(stack[stack_n].str, lex, li);
 				stack[stack_n].type = key;
 				stack[stack_n].indx = 0;
+				stack[stack_n].scop = brackt_n;
 				inc_stack(2);
 				stack_n = stack_n + 1;
 			}
-			else if (key == 3) {
+			else if (key == 3 || key == 7) {
 				cu_enc_loc_dec_32(bin, bn, sym, symn, rel, reln);
 				
 				stack[stack_n].str = malloc(li);
 				memcpy(stack[stack_n].str, lex, li);
 				stack[stack_n].type = key;
 				stack[stack_n].indx = 0;
+				stack[stack_n].scop = brackt_n;
 				inc_stack(4);
 				stack_n = stack_n + 1;
 			}
-			else if (key == 4) {
+			else if (key == 4 || key == 8) {
 				cu_enc_loc_dec_64(bin, bn, sym, symn, rel, reln);
 				
 				stack[stack_n].str = malloc(li);
 				memcpy(stack[stack_n].str, lex, li);
 				stack[stack_n].type = key;
 				stack[stack_n].indx = 0;
-				inc_stack(8);
-				stack_n = stack_n + 1;
-			}
-			else if (key == 5) {
-				cu_enc_loc_dec_8(bin, bn, sym, symn, rel, reln);
-				
-				stack[stack_n].str = malloc(li);
-				memcpy(stack[stack_n].str, lex, li);
-				stack[stack_n].type = key;
-				stack[stack_n].indx = 0;
-				inc_stack(1);
-				stack_n = stack_n + 1;
-			}
-			else if (key == 6) {
-				cu_enc_loc_dec_16(bin, bn, sym, symn, rel, reln);
-				
-				stack[stack_n].str = malloc(li);
-				memcpy(stack[stack_n].str, lex, li);
-				stack[stack_n].type = key;
-				stack[stack_n].indx = 0;
-				inc_stack(2);
-				stack_n = stack_n + 1;
-			}
-			else if (key == 7) {
-				cu_enc_loc_dec_32(bin, bn, sym, symn, rel, reln);
-				
-				stack[stack_n].str = malloc(li);
-				memcpy(stack[stack_n].str, lex, li);
-				stack[stack_n].type = key;
-				stack[stack_n].indx = 0;
-				inc_stack(4);
-				stack_n = stack_n + 1;
-			}
-			else if (key == 8) {
-				cu_enc_loc_dec_64(bin, bn, sym, symn, rel, reln);
-				
-				stack[stack_n].str = malloc(li);
-				memcpy(stack[stack_n].str, lex, li);
-				stack[stack_n].type = key;
-				stack[stack_n].indx = 0;
+				stack[stack_n].scop = brackt_n;
 				inc_stack(8);
 				stack_n = stack_n + 1;
 			}
@@ -747,6 +702,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			li = 0;
 		}
 		else if ((fx[fi] == '}') && !c) { //next string (end function content)
+			dec_stack(brackt_n);
 			brackt_n = brackt_n - 1;
 			lex[0] = 0;
 			li = 0;
