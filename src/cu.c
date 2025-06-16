@@ -73,6 +73,13 @@ void (*cu_enc_glo_dec_32) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uin
 
 void (*cu_enc_glo_dec_64) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t*, uint8_t);
 
+void (*cu_enc_glo_str_8) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t*, uint8_t);
+
+void (*cu_enc_glo_str_16) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t*, uint8_t);
+
+void (*cu_enc_glo_str_32) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t*, uint8_t);
+
+void (*cu_enc_glo_str_64) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t*, uint8_t);
 
 struct cu_var_s {
 	uint8_t* str; //variable name
@@ -407,16 +414,16 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 	void end_assign() {
 		if (!stack[stack_dst].scop) {
 			if (stack[stack_dst].type == 1 || stack[stack_dst].type == 5) {
-				//cu_enc_glo_load_reg_8(bin, bn, rel, reln);
+				cu_enc_glo_str_8(bin, bn, rel, reln, lex, li);
 			}
 			else if (stack[stack_dst].type == 2 || stack[stack_dst].type == 6) {
-				//cu_enc_glo_load_reg_8(bin, bn, rel, reln);
+				cu_enc_glo_str_16(bin, bn, rel, reln, lex, li);
 			}
 			else if (stack[stack_dst].type == 3 || stack[stack_dst].type == 7) {
-				//cu_enc_glo_load_reg_8(bin, bn, rel, reln);
-				}
+				cu_enc_glo_str_32(bin, bn, rel, reln, lex, li);
+			}
 			else if (stack[stack_dst].type == 4 || stack[stack_dst].type == 8) {
-				//cu_enc_glo_load_reg_8(bin, bn, rel, reln);
+				cu_enc_glo_str_64(bin, bn, rel, reln, lex, li);
 			}
 		}
 		else {
@@ -907,6 +914,10 @@ int8_t main(int32_t argc, int8_t** argv) {
 		cu_enc_glo_dec_16 = x86_64_enc_glo_dec_16;
 		cu_enc_glo_dec_32 = x86_64_enc_glo_dec_32;
 		cu_enc_glo_dec_64 = x86_64_enc_glo_dec_64;
+		cu_enc_glo_str_8 = x86_64_enc_glo_str_8;
+		cu_enc_glo_str_16 = x86_64_enc_glo_str_16;
+		cu_enc_glo_str_32 = x86_64_enc_glo_str_32;
+		cu_enc_glo_str_64 = x86_64_enc_glo_str_64;
 	}
 	else {
 		printf("error: unsupported architecture\n");
