@@ -73,6 +73,14 @@ void (*cu_enc_glo_dec_32) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uin
 
 void (*cu_enc_glo_dec_64) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t*, uint8_t);
 
+void (*cu_enc_glo_load_reg_8) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t, uint8_t*, uint8_t);
+
+void (*cu_enc_glo_load_reg_16) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t, uint8_t*, uint8_t);
+
+void (*cu_enc_glo_load_reg_32) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t, uint8_t*, uint8_t);
+
+void (*cu_enc_glo_load_reg_64) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t, uint8_t*, uint8_t);
+
 void (*cu_enc_glo_str_8) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t*, uint8_t);
 
 void (*cu_enc_glo_str_16) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t*, uint8_t);
@@ -83,71 +91,11 @@ void (*cu_enc_glo_str_64) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uin
 
 struct cu_var_s {
 	uint8_t* str; //variable name
+	uint8_t len; //string length
 	uint8_t type; //variable type
 	uint32_t indx; //index into stack
 	uint8_t scop; //level of scope, number of brackets
 };
-
-/*	operation types
-
-	0	null
-	
-	1	declare 1 byte
-	2	declare 2 bytes
-	3	declare 4 bytes
-	4	declare 8 bytes
-	
-	5	move 1 byte
-	6	move 2 bytes
-	7	move 4 bytes
-	8	move 8 bytes
-	
-	9	call					//function out of scope
-	10	branch					//function in scope
-	
-	11	add
-	12	subtract
-	
-	13	bitwise not
-	14	bitwise and
-	15	bitwise or
-	16	bitwise exclusive or
-	17	bitwise left shift
-	18	bitwise right shift
-	
-	19	logical not
-	20	logical and
-	21	logical or
-	22	logical equal to
-	23	logical greater than
-	24	logical less than
-	25	logical greater than or equal to
-	26	logical less than or equal to
-	
-	27	multiply
-	28	divide
-	29	modulo
-	
-	30 return
-
-*/
-
-/*	operation classes
-
-	declaration (move stack pointer for memory)
-		the compiler must keep track of this variable independently from the order in which it is declared
-	
-	assignment (move something to something)
-		the compiler doesn't care what is being assigned in itself, only from whom to whom
-		
-	binary operations (do something to something)
-		this can be nested, and must be, within an assignment
-	
-	function calling (jump to code, parameters in tow)
-		the compiler must keep track that all parameters are given, no more, no less
-		"assigning" value to parameters?
-		
-*/
 
 uint64_t cu_str_int_dec(int8_t* a, int8_t* e, int8_t* path, uint64_t ln) {
 	uint64_t b = 0;
@@ -414,16 +362,16 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 	void end_assign() {
 		if (!stack[stack_dst].scop) {
 			if (stack[stack_dst].type == 1 || stack[stack_dst].type == 5) {
-				cu_enc_glo_str_8(bin, bn, rel, reln, lex, li);
+				cu_enc_glo_str_8(bin, bn, rel, reln, stack[stack_dst].str, stack[stack_dst].len);
 			}
 			else if (stack[stack_dst].type == 2 || stack[stack_dst].type == 6) {
-				cu_enc_glo_str_16(bin, bn, rel, reln, lex, li);
+				cu_enc_glo_str_16(bin, bn, rel, reln, stack[stack_dst].str, stack[stack_dst].len);
 			}
 			else if (stack[stack_dst].type == 3 || stack[stack_dst].type == 7) {
-				cu_enc_glo_str_32(bin, bn, rel, reln, lex, li);
+				cu_enc_glo_str_32(bin, bn, rel, reln, stack[stack_dst].str, stack[stack_dst].len);
 			}
 			else if (stack[stack_dst].type == 4 || stack[stack_dst].type == 8) {
-				cu_enc_glo_str_64(bin, bn, rel, reln, lex, li);
+				cu_enc_glo_str_64(bin, bn, rel, reln, stack[stack_dst].str, stack[stack_dst].len);
 			}
 		}
 		else {
@@ -449,16 +397,16 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			if (stack_src) {
 				if (!stack[stack_src].scop) {
 					if (stack[stack_src].type == 1 || stack[stack_src].type == 5) {
-						//cu_enc_glo_load_reg_8(bin, bn, rel, reln);
+						cu_enc_glo_load_reg_8(bin, bn, rel, reln, 0, stack[stack_src].str, stack[stack_src].len);
 					}
 					else if (stack[stack_src].type == 2 || stack[stack_src].type == 6) {
-						//cu_enc_glo_load_reg_8(bin, bn, rel, reln);
+						cu_enc_glo_load_reg_16(bin, bn, rel, reln, 0, stack[stack_src].str, stack[stack_src].len);
 					}
 					else if (stack[stack_src].type == 3 || stack[stack_src].type == 7) {
-						//cu_enc_glo_load_reg_8(bin, bn, rel, reln);
+						cu_enc_glo_load_reg_32(bin, bn, rel, reln, 0, stack[stack_src].str, stack[stack_src].len);
 					}
 					else if (stack[stack_src].type == 4 || stack[stack_src].type == 8) {
-						//cu_enc_glo_load_reg_8(bin, bn, rel, reln);
+						cu_enc_glo_load_reg_64(bin, bn, rel, reln, 0, stack[stack_src].str, stack[stack_src].len);
 					}
 				}
 				else {
@@ -497,6 +445,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				
 				stack[stack_n].str = malloc(li);
 				memcpy(stack[stack_n].str, lex, li);
+				stack[stack_n].len = li;
 				stack[stack_n].type = key;
 				stack[stack_n].indx = 0;
 				stack[stack_n].scop = brackt_n;
@@ -509,6 +458,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				
 				stack[stack_n].str = malloc(li);
 				memcpy(stack[stack_n].str, lex, li);
+				stack[stack_n].len = li;
 				stack[stack_n].type = key;
 				stack[stack_n].indx = 0;
 				stack[stack_n].scop = brackt_n;
@@ -521,6 +471,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				
 				stack[stack_n].str = malloc(li);
 				memcpy(stack[stack_n].str, lex, li);
+				stack[stack_n].len = li;
 				stack[stack_n].type = key;
 				stack[stack_n].indx = 0;
 				stack[stack_n].scop = brackt_n;
@@ -533,6 +484,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				
 				stack[stack_n].str = malloc(li);
 				memcpy(stack[stack_n].str, lex, li);
+				stack[stack_n].len = li;
 				stack[stack_n].type = key;
 				stack[stack_n].indx = 0;
 				stack[stack_n].scop = brackt_n;
@@ -548,6 +500,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				
 				stack[stack_n].str = malloc(li);
 				memcpy(stack[stack_n].str, lex, li);
+				stack[stack_n].len = li;
 				stack[stack_n].type = key;
 				stack[stack_n].indx = 0;
 				stack[stack_n].scop = brackt_n;
@@ -560,6 +513,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				
 				stack[stack_n].str = malloc(li);
 				memcpy(stack[stack_n].str, lex, li);
+				stack[stack_n].len = li;
 				stack[stack_n].type = key;
 				stack[stack_n].indx = 0;
 				stack[stack_n].scop = brackt_n;
@@ -572,6 +526,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				
 				stack[stack_n].str = malloc(li);
 				memcpy(stack[stack_n].str, lex, li);
+				stack[stack_n].len = li;
 				stack[stack_n].type = key;
 				stack[stack_n].indx = 0;
 				stack[stack_n].scop = brackt_n;
@@ -584,6 +539,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				
 				stack[stack_n].str = malloc(li);
 				memcpy(stack[stack_n].str, lex, li);
+				stack[stack_n].len = li;
 				stack[stack_n].type = key;
 				stack[stack_n].indx = 0;
 				stack[stack_n].scop = brackt_n;
@@ -914,6 +870,10 @@ int8_t main(int32_t argc, int8_t** argv) {
 		cu_enc_glo_dec_16 = x86_64_enc_glo_dec_16;
 		cu_enc_glo_dec_32 = x86_64_enc_glo_dec_32;
 		cu_enc_glo_dec_64 = x86_64_enc_glo_dec_64;
+		cu_enc_glo_load_reg_8 = x86_64_enc_glo_load_reg_8;
+		cu_enc_glo_load_reg_16 = x86_64_enc_glo_load_reg_16;
+		cu_enc_glo_load_reg_32 = x86_64_enc_glo_load_reg_32;
+		cu_enc_glo_load_reg_64 = x86_64_enc_glo_load_reg_64;
 		cu_enc_glo_str_8 = x86_64_enc_glo_str_8;
 		cu_enc_glo_str_16 = x86_64_enc_glo_str_16;
 		cu_enc_glo_str_32 = x86_64_enc_glo_str_32;
