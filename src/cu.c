@@ -309,7 +309,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 	// 1 - assignment
 	uint8_t key = 0;		//current keyword
 	uint8_t reg = 0;		//register
-	uint8_t op = 0;			//operation
+	uint8_t op[12] = {};			//operation
 	
 	uint8_t brackt_n = 0;	//level inside of brackets
 	uint8_t prnths_n = 0;	//level inside of parentheses
@@ -394,6 +394,16 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 		}
 		mod = 0;
 	}
+
+	void adv_assign() {
+		if (op[prnths_n]) {
+			if (op[prnths_n] == 1) {
+				cu_enc_add(bin, bn, reg - 1, reg);
+			}
+			reg = reg - 1;
+			op[prnths_n] = 0;
+		}
+	}
 	
 	void next_str() {
 		if (mod == 1) {
@@ -433,13 +443,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				uint64_t k = cu_str_int_dec(lex, e, path, ln);
 				cu_enc_load_imm(bin, bn, reg, k);
 			}
-			if (op) {
-				if (op == 1) {
-					cu_enc_add(bin, bn, reg - 1, reg);
-				}
-				reg = reg - 1;
-				op = 0;
-			}
+			adv_assign();
 		}
 		else if (!key && !stack_dst) {
 			key = cu_str_key(lex);
@@ -589,7 +593,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			}
 			if (mod == 1) {
 				reg = reg + 1;
-				op = 1;
+				op[prnths_n] = 1;
 			}
 			else {
 				//error
@@ -736,7 +740,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			lex[0] = 0;
 			li = 0;
 		}
-		else if ((fx[fi] == ';') && li && !c) {
+		else if ((fx[fi] == ';') && !c) {
 			if (li) {
 				next_str();
 			}
@@ -749,11 +753,14 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			if (li) {
 				next_str();
 			}
+			prnths_n = prnths_n + 1;
 		}
 		else if ((fx[fi] == ')') && !c) { 
 			if (li) {
 				next_str();
 			}
+			prnths_n = prnths_n - 1;
+			adv_assign();
 		}
 		else if ((fx[fi] == '{') && !c) { //next string (begin function content)
 			if (li) {
