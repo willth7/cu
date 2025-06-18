@@ -47,15 +47,13 @@ void (*cu_enc_loc_dec_32) (uint8_t*, uint64_t*);
 
 void (*cu_enc_loc_dec_64) (uint8_t*, uint64_t*);
 
-void (*cu_enc_load_reg_imm) (uint8_t*, uint64_t*, uint8_t, uint64_t);
+void (*cu_enc_loc_load_8) (uint8_t*, uint64_t*, uint8_t, uint32_t);
 
-void (*cu_enc_loc_load_reg_8) (uint8_t*, uint64_t*, uint8_t, uint32_t);
+void (*cu_enc_loc_load_16) (uint8_t*, uint64_t*, uint8_t, uint32_t);
 
-void (*cu_enc_loc_load_reg_16) (uint8_t*, uint64_t*, uint8_t, uint32_t);
+void (*cu_enc_loc_load_32) (uint8_t*, uint64_t*, uint8_t, uint32_t);
 
-void (*cu_enc_loc_load_reg_32) (uint8_t*, uint64_t*, uint8_t, uint32_t);
-
-void (*cu_enc_loc_load_reg_64) (uint8_t*, uint64_t*, uint8_t, uint32_t);
+void (*cu_enc_loc_load_64) (uint8_t*, uint64_t*, uint8_t, uint32_t);
 
 void (*cu_enc_loc_str_8) (uint8_t*, uint64_t*, uint32_t);
 
@@ -73,13 +71,13 @@ void (*cu_enc_glo_dec_32) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uin
 
 void (*cu_enc_glo_dec_64) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t*, uint8_t);
 
-void (*cu_enc_glo_load_reg_8) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t, uint8_t*, uint8_t);
+void (*cu_enc_glo_load_8) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t, uint8_t*, uint8_t);
 
-void (*cu_enc_glo_load_reg_16) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t, uint8_t*, uint8_t);
+void (*cu_enc_glo_load_16) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t, uint8_t*, uint8_t);
 
-void (*cu_enc_glo_load_reg_32) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t, uint8_t*, uint8_t);
+void (*cu_enc_glo_load_32) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t, uint8_t*, uint8_t);
 
-void (*cu_enc_glo_load_reg_64) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t, uint8_t*, uint8_t);
+void (*cu_enc_glo_load_64) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t, uint8_t*, uint8_t);
 
 void (*cu_enc_glo_str_8) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t*, uint8_t);
 
@@ -88,6 +86,10 @@ void (*cu_enc_glo_str_16) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uin
 void (*cu_enc_glo_str_32) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t*, uint8_t);
 
 void (*cu_enc_glo_str_64) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t*, uint8_t);
+
+void (*cu_enc_load_imm) (uint8_t*, uint64_t*, uint8_t, uint64_t);
+
+void (*cu_enc_add) (uint8_t*, uint64_t*, uint8_t, uint8_t);
 
 struct cu_var_s {
 	uint8_t* str; //variable name
@@ -306,6 +308,8 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 	// 0 - declaration
 	// 1 - assignment
 	uint8_t key = 0;		//current keyword
+	uint8_t reg = 0;		//register
+	uint8_t op = 0;			//operation
 	
 	uint8_t brackt_n = 0;	//level inside of brackets
 	uint8_t prnths_n = 0;	//level inside of parentheses
@@ -397,36 +401,44 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			if (stack_src) {
 				if (!stack[stack_src].scop) {
 					if (stack[stack_src].type == 1 || stack[stack_src].type == 5) {
-						cu_enc_glo_load_reg_8(bin, bn, rel, reln, 0, stack[stack_src].str, stack[stack_src].len);
+						cu_enc_glo_load_8(bin, bn, rel, reln, reg, stack[stack_src].str, stack[stack_src].len);
 					}
 					else if (stack[stack_src].type == 2 || stack[stack_src].type == 6) {
-						cu_enc_glo_load_reg_16(bin, bn, rel, reln, 0, stack[stack_src].str, stack[stack_src].len);
+						cu_enc_glo_load_16(bin, bn, rel, reln, reg, stack[stack_src].str, stack[stack_src].len);
 					}
 					else if (stack[stack_src].type == 3 || stack[stack_src].type == 7) {
-						cu_enc_glo_load_reg_32(bin, bn, rel, reln, 0, stack[stack_src].str, stack[stack_src].len);
+						cu_enc_glo_load_32(bin, bn, rel, reln, reg, stack[stack_src].str, stack[stack_src].len);
 					}
 					else if (stack[stack_src].type == 4 || stack[stack_src].type == 8) {
-						cu_enc_glo_load_reg_64(bin, bn, rel, reln, 0, stack[stack_src].str, stack[stack_src].len);
+						cu_enc_glo_load_64(bin, bn, rel, reln, reg, stack[stack_src].str, stack[stack_src].len);
 					}
 				}
 				else {
 					if (stack[stack_src].type == 1 || stack[stack_src].type == 5) {
-						cu_enc_loc_load_reg_8(bin, bn, 0, stack[stack_src].indx);
+						cu_enc_loc_load_8(bin, bn, reg, stack[stack_src].indx);
 					}
 					else if (stack[stack_src].type == 2 || stack[stack_src].type == 6) {
-						cu_enc_loc_load_reg_16(bin, bn, 0, stack[stack_src].indx);
+						cu_enc_loc_load_16(bin, bn, reg, stack[stack_src].indx);
 					}
 					else if (stack[stack_src].type == 3 || stack[stack_src].type == 7) {
-						cu_enc_loc_load_reg_32(bin, bn, 0, stack[stack_src].indx);
+						cu_enc_loc_load_32(bin, bn, reg, stack[stack_src].indx);
 					}
 					else if (stack[stack_src].type == 4 || stack[stack_src].type == 8) {
-						cu_enc_loc_load_reg_64(bin, bn, 0, stack[stack_src].indx);
+						cu_enc_loc_load_64(bin, bn, reg, stack[stack_src].indx);
 					}
 				}
+				stack_src = 0;
 			}
 			else {
 				uint64_t k = cu_str_int_dec(lex, e, path, ln);
-				cu_enc_load_reg_imm(bin, bn, 0, k);
+				cu_enc_load_imm(bin, bn, reg, k);
+			}
+			if (op) {
+				if (op == 1) {
+					cu_enc_add(bin, bn, reg - 1, reg);
+				}
+				reg = reg - 1;
+				op = 0;
 			}
 		}
 		else if (!key && !stack_dst) {
@@ -574,6 +586,13 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 		else if ((fx[fi] == '+') && !c) { //addition
 			if (li) {
 				next_str();
+			}
+			if (mod == 1) {
+				reg = reg + 1;
+				op = 1;
+			}
+			else {
+				//error
 			}
 		}
 		else if ((fx[fi] == '-' && fx[fi + 1] == '>') && li && !c) { //struct access (pointer)
@@ -857,11 +876,10 @@ int8_t main(int32_t argc, int8_t** argv) {
 		cu_enc_loc_dec_16 = x86_64_enc_loc_dec_16;
 		cu_enc_loc_dec_32 = x86_64_enc_loc_dec_32;
 		cu_enc_loc_dec_64 = x86_64_enc_loc_dec_64;
-		cu_enc_load_reg_imm = x86_64_enc_load_reg_imm;
-		cu_enc_loc_load_reg_8 = x86_64_enc_loc_load_reg_8;
-		cu_enc_loc_load_reg_16 = x86_64_enc_loc_load_reg_16;
-		cu_enc_loc_load_reg_32 = x86_64_enc_loc_load_reg_32;
-		cu_enc_loc_load_reg_64 = x86_64_enc_loc_load_reg_64;
+		cu_enc_loc_load_8 = x86_64_enc_loc_load_8;
+		cu_enc_loc_load_16 = x86_64_enc_loc_load_16;
+		cu_enc_loc_load_32 = x86_64_enc_loc_load_32;
+		cu_enc_loc_load_64 = x86_64_enc_loc_load_64;
 		cu_enc_loc_str_8 = x86_64_enc_loc_str_8;
 		cu_enc_loc_str_16 = x86_64_enc_loc_str_16;
 		cu_enc_loc_str_32 = x86_64_enc_loc_str_32;
@@ -870,14 +888,16 @@ int8_t main(int32_t argc, int8_t** argv) {
 		cu_enc_glo_dec_16 = x86_64_enc_glo_dec_16;
 		cu_enc_glo_dec_32 = x86_64_enc_glo_dec_32;
 		cu_enc_glo_dec_64 = x86_64_enc_glo_dec_64;
-		cu_enc_glo_load_reg_8 = x86_64_enc_glo_load_reg_8;
-		cu_enc_glo_load_reg_16 = x86_64_enc_glo_load_reg_16;
-		cu_enc_glo_load_reg_32 = x86_64_enc_glo_load_reg_32;
-		cu_enc_glo_load_reg_64 = x86_64_enc_glo_load_reg_64;
+		cu_enc_glo_load_8 = x86_64_enc_glo_load_8;
+		cu_enc_glo_load_16 = x86_64_enc_glo_load_16;
+		cu_enc_glo_load_32 = x86_64_enc_glo_load_32;
+		cu_enc_glo_load_64 = x86_64_enc_glo_load_64;
 		cu_enc_glo_str_8 = x86_64_enc_glo_str_8;
 		cu_enc_glo_str_16 = x86_64_enc_glo_str_16;
 		cu_enc_glo_str_32 = x86_64_enc_glo_str_32;
 		cu_enc_glo_str_64 = x86_64_enc_glo_str_64;
+		cu_enc_load_imm = x86_64_enc_load_imm;
+		cu_enc_add = x86_64_enc_add;
 	}
 	else {
 		printf("error: unsupported architecture\n");
