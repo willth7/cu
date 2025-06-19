@@ -272,56 +272,30 @@ uint8_t cu_str_key(uint8_t* str) {
 		return 8;
 	}
 	
-	else if (!strcmp(str, "uint8_t*")) {
-		return 9;
-	}
-	else if (!strcmp(str, "uint16_t*")) {
-		return 10;
-	}
-	else if (!strcmp(str, "uint32_t*")) {
-		return 11;
-	}
-	else if (!strcmp(str, "uin64_t*")) {
-		return 12;
-	}
-	
-	else if (!strcmp(str, "int8_t*")) {
-		return 13;
-	}
-	else if (!strcmp(str, "int16_t*")) {
-		return 14;
-	}
-	else if (!strcmp(str, "int32_t*")) {
-		return 15;
-	}
-	else if (!strcmp(str, "int64_t*")) {
-		return 16;
-	}
-	
 	else if (!strcmp(str, "void")) {
-		return 17;
+		return 9;
 	}
 	
 	else if (!strcmp(str, "if")) {
-		
+		return 10;
 	}
 	else if (!strcmp(str, "while")) {
-		
+		return 11;
 	}
 	else if (!strcmp(str, "for")) {
-		
+		return 12;
 	}
 	else if (!strcmp(str, "else")) {
-		
+		return 13;
 	}
 	
-	else if (!strcmp(str, "return")) {
-		return 30;
-	}
 	else if (!strcmp(str, "break")) {
-		
+		return 14;
 	}
-	
+	else if (!strcmp(str, "return")) {
+		return 15;
+	}
+
 	else {
 		return 0;
 	}
@@ -441,72 +415,118 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 		if (op[prnths_n]) {
 			if (op[prnths_n] == 1) {
 				cu_enc_add(bin, bn, reg - 1, reg);
+				reg = reg - 1;
+				op[prnths_n] = 0;
 			}
 			else if (op[prnths_n] == 2) {
 				cu_enc_sub(bin, bn, reg - 1, reg);
+				reg = reg - 1;
+				op[prnths_n] = 0;
 			}
 			else if (op[prnths_n] == 3) {
 				cu_enc_inc(bin, bn, reg);
+				op[prnths_n] = 0;
+				prnths_n = prnths_n - 1;
+				adv_assign();
 			}
 			else if (op[prnths_n] == 4) {
 				cu_enc_dec(bin, bn, reg);
+				op[prnths_n] = 0;
+				prnths_n = prnths_n - 1;
+				adv_assign();
 			}
 			else if (op[prnths_n] == 5) {
 				cu_enc_bit_not(bin, bn, reg);
+				op[prnths_n] = 0;
+				prnths_n = prnths_n - 1;
+				adv_assign();
 			}
 			else if (op[prnths_n] == 6) {
 				cu_enc_bit_and(bin, bn, reg - 1, reg);
+				reg = reg - 1;
+				op[prnths_n] = 0;
 			}
 			else if (op[prnths_n] == 7) {
 				cu_enc_bit_or(bin, bn, reg - 1, reg);
+				reg = reg - 1;
+				op[prnths_n] = 0;
 			}
 			else if (op[prnths_n] == 8) {
 				cu_enc_bit_xor(bin, bn, reg - 1, reg);
+				reg = reg - 1;
+				op[prnths_n] = 0;
 			}
 			else if (op[prnths_n] == 9) {
 				cu_enc_bit_shl(bin, bn, reg - 1, reg);
+				reg = reg - 1;
+				op[prnths_n] = 0;
 			}
 			else if (op[prnths_n] == 10) {
 				cu_enc_bit_shr(bin, bn, reg - 1, reg);
+				reg = reg - 1;
+				op[prnths_n] = 0;
 			}
 			else if (op[prnths_n] == 11) {
 				cu_enc_log_not(bin, bn, reg);
+				op[prnths_n] = 0;
+				prnths_n = prnths_n - 1;
+				adv_assign();
 			}
 			else if (op[prnths_n] == 12) {
 				cu_enc_log_and(bin, bn, reg - 1, reg);
+				reg = reg - 1;
+				op[prnths_n] = 0;
 			}
 			else if (op[prnths_n] == 13) {
 				cu_enc_log_or(bin, bn, reg - 1, reg);
+				reg = reg - 1;
+				op[prnths_n] = 0;
 			}
 			else if (op[prnths_n] == 14) {
 				cu_enc_log_eq(bin, bn, reg - 1, reg);
+				reg = reg - 1;
+				op[prnths_n] = 0;
 			}
 			else if (op[prnths_n] == 15) {
 				cu_enc_log_neq(bin, bn, reg - 1, reg);
+				reg = reg - 1;
+				op[prnths_n] = 0;
 			}
 			else if (op[prnths_n] == 16) {
 				cu_enc_log_lt(bin, bn, reg - 1, reg);
+				reg = reg - 1;
+				op[prnths_n] = 0;
 			}
 			else if (op[prnths_n] == 17) {
 				cu_enc_log_leq(bin, bn, reg - 1, reg);
+				reg = reg - 1;
+				op[prnths_n] = 0;
 			}
 			else if (op[prnths_n] == 18) {
 				cu_enc_log_gt(bin, bn, reg - 1, reg);
+				reg = reg - 1;
+				op[prnths_n] = 0;
 			}
 			else if (op[prnths_n] == 19) {
 				cu_enc_log_geq(bin, bn, reg - 1, reg);
+				reg = reg - 1;
+				op[prnths_n] = 0;
 			}
 			else if (op[prnths_n] == 20) {
 				cu_enc_mult(bin, bn, reg - 1, reg);
+				reg = reg - 1;
+				op[prnths_n] = 0;
 			}
 			else if (op[prnths_n] == 21) {
 				cu_enc_div(bin, bn, reg - 1, reg);
+				reg = reg - 1;
+				op[prnths_n] = 0;
 			}
 			else if (op[prnths_n] == 22) {
 				cu_enc_mod(bin, bn, reg - 1, reg);
+				reg = reg - 1;
+				op[prnths_n] = 0;
 			}
-			reg = reg - 1;
-			op[prnths_n] = 0;
 		}
 	}
 	
@@ -682,18 +702,12 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			lex[li + 1] = 0;
 			li++;
 		}
-		else if ((fx[fi] == '+') && (fx[fi + 1] == '=') && !c) { //addition compounded assignment
-			if (li) {
-				next_str();
-			}
-			fi = fi + 1;
-		}
 		else if ((fx[fi] == '+') && (fx[fi + 1] == '+') && !c) { //increment
 			if (li) {
 				next_str();
 			}
 			if (mod == 1) {
-				reg = reg + 1;
+				prnths_n = prnths_n + 1;
 				op[prnths_n] = 3;
 			}
 			fi = fi + 1;
@@ -710,18 +724,12 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 		else if ((fx[fi] == '-' && fx[fi + 1] == '>') && li && !c) { //struct access (pointer)
 			fi = fi + 1;
 		}
-		else if ((fx[fi] == '-') && (fx[fi + 1] == '=') && !c) { //subtraction compounded assignment
-			if (li) {
-				next_str();
-			}
-			fi = fi + 1;
-		}
 		else if ((fx[fi] == '-') && (fx[fi + 1] == '-') && !c) { //decrement
 			if (li) {
 				next_str();
 			}
 			if (mod == 1) {
-				reg = reg + 1;
+				prnths_n = prnths_n + 1;
 				op[prnths_n] = 4;
 			}
 			fi = fi + 1;
@@ -750,7 +758,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				next_str();
 			}
 			if (mod == 1) {
-				reg = reg + 1;
+				prnths_n = prnths_n + 1;
 				op[prnths_n] = 11;
 			}	
 		}
@@ -759,6 +767,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				next_str();
 			}
 			if (mod == 1) {
+				prnths_n = prnths_n + 1;
 				op[prnths_n] = 5;
 			}
 		}
