@@ -759,7 +759,6 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				next_str();
 			}
 			if (mod == 1) {
-				reg = reg + 1;
 				op[prnths_n] = 5;
 			}
 		}
@@ -1067,9 +1066,6 @@ int8_t main(int32_t argc, int8_t** argv) {
 		
 	}
 	else if (!strcmp(argv[1], "arm32-a")) {
-		
-	}
-	else if (!strcmp(argv[1], "arm64")) {
 		
 	}
 	else if (!strcmp(argv[1], "x86")) {

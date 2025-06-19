@@ -322,6 +322,13 @@ void x86_64_enc_pop_reg(uint8_t* bin, uint64_t* bn, uint8_t r) {
 	x86_64_inst_byt(bin, bn, 88 | (r & 7)); //op
 }
 
+void x86_64_enc_not_reg(uint8_t* bin, uint64_t* bn, uint8_t reg) {
+	x86_64_prfx_leg(bin, bn, 0, reg);
+	x86_64_prfx_rex(bin, bn, reg, 0, reg & 48);
+	x86_64_inst_byt(bin, bn, 246 + !!(reg & 48)); //op
+	x86_64_inst_mod(bin, bn, 3, reg, 2); //modrm
+}
+
 void x86_64_enc_syscall(uint8_t* bin, uint64_t* bn) {
 	x86_64_inst_byt(bin, bn, 15); //op
 	x86_64_inst_byt(bin, bn, 5); //op
@@ -642,7 +649,7 @@ void x86_64_enc_dec(uint8_t* bin, uint64_t* bn, uint8_t reg) {
 void x86_64_enc_bit_not(uint8_t* bin, uint64_t* bn, uint8_t reg) {
 	reg = x86_64_inc_reg(reg);
 	
-	//x86_64_enc_add_reg_reg(bin, bn, r0 | 48, r1 | 48);
+	x86_64_enc_not_reg(bin, bn, reg | 48);
 }
 
 void x86_64_enc_bit_and(uint8_t* bin, uint64_t* bn, uint8_t r0, uint8_t r1) {
