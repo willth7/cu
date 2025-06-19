@@ -332,7 +332,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 	
 	struct cu_var_s stack[65536];
 	uint16_t stack_n = 1;
-
+	
 	uint16_t stack_dst = 0; //variable assignment
 	
 	cu_enc_ent(bin, bn, rel, reln); 
@@ -343,7 +343,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			stack[i].indx = stack[i].indx + sz;
 		}
 	}
-
+	
 	void dec_stack(uint8_t scop) {
 		for (uint16_t i = stack_n - 1; i > 0; i--) {
 			if (stack[i].scop != scop) {
@@ -369,7 +369,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			}
 		}
 	}
-
+	
 	uint16_t fnd_stack(uint8_t* str) {
 		for (uint16_t i = stack_n - 1; i > 0; i--) {
 			if (!strcmp(stack[i].str, str)) {
@@ -378,39 +378,44 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 		}
 		return 0;
 	}
-
-	void end_assign() {
-		if (!stack[stack_dst].scop) {
-			if (stack[stack_dst].type == 1 || stack[stack_dst].type == 5) {
-				cu_enc_glo_str_8(bin, bn, rel, reln, stack[stack_dst].str, stack[stack_dst].len);
+	
+	void load_src(uint16_t stack_src) {
+		if (stack_src) {
+			if (!stack[stack_src].scop) {
+				if (stack[stack_src].type == 1 || stack[stack_src].type == 5) {
+					cu_enc_glo_load_8(bin, bn, rel, reln, reg, stack[stack_src].str, stack[stack_src].len);
+				}
+				else if (stack[stack_src].type == 2 || stack[stack_src].type == 6) {
+					cu_enc_glo_load_16(bin, bn, rel, reln, reg, stack[stack_src].str, stack[stack_src].len);
+				}
+				else if (stack[stack_src].type == 3 || stack[stack_src].type == 7) {
+					cu_enc_glo_load_32(bin, bn, rel, reln, reg, stack[stack_src].str, stack[stack_src].len);
+				}
+				else if (stack[stack_src].type == 4 || stack[stack_src].type == 8) {
+					cu_enc_glo_load_64(bin, bn, rel, reln, reg, stack[stack_src].str, stack[stack_src].len);
+				}
 			}
-			else if (stack[stack_dst].type == 2 || stack[stack_dst].type == 6) {
-				cu_enc_glo_str_16(bin, bn, rel, reln, stack[stack_dst].str, stack[stack_dst].len);
-			}
-			else if (stack[stack_dst].type == 3 || stack[stack_dst].type == 7) {
-				cu_enc_glo_str_32(bin, bn, rel, reln, stack[stack_dst].str, stack[stack_dst].len);
-			}
-			else if (stack[stack_dst].type == 4 || stack[stack_dst].type == 8) {
-				cu_enc_glo_str_64(bin, bn, rel, reln, stack[stack_dst].str, stack[stack_dst].len);
+			else {
+				if (stack[stack_src].type == 1 || stack[stack_src].type == 5) {
+					cu_enc_loc_load_8(bin, bn, reg, stack[stack_src].indx);
+				}
+				else if (stack[stack_src].type == 2 || stack[stack_src].type == 6) {
+					cu_enc_loc_load_16(bin, bn, reg, stack[stack_src].indx);
+				}
+				else if (stack[stack_src].type == 3 || stack[stack_src].type == 7) {
+					cu_enc_loc_load_32(bin, bn, reg, stack[stack_src].indx);
+				}
+				else if (stack[stack_src].type == 4 || stack[stack_src].type == 8) {
+					cu_enc_loc_load_64(bin, bn, reg, stack[stack_src].indx);
+				}
 			}
 		}
 		else {
-			if (stack[stack_dst].type == 1 || stack[stack_dst].type == 5) {
-				cu_enc_loc_str_8(bin, bn, stack[stack_dst].indx);
-			}
-			else if (stack[stack_dst].type == 2 || stack[stack_dst].type == 6) {
-				cu_enc_loc_str_16(bin, bn, stack[stack_dst].indx);
-			}
-			else if (stack[stack_dst].type == 3 || stack[stack_dst].type == 7) {
-				cu_enc_loc_str_32(bin, bn, stack[stack_dst].indx);
-			}
-			else if (stack[stack_dst].type == 4 || stack[stack_dst].type == 8) {
-				cu_enc_loc_str_64(bin, bn, stack[stack_dst].indx);
-			}
+			uint64_t k = cu_str_int_dec(lex, e, path, ln);
+			cu_enc_load_imm(bin, bn, reg, k);
 		}
-		mod = 0;
 	}
-
+	
 	void adv_assign() {
 		if (op[prnths_n]) {
 			if (op[prnths_n] == 1) {
@@ -424,16 +429,14 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				op[prnths_n] = 0;
 			}
 			else if (op[prnths_n] == 3) {
+				load_src(stack_dst);
 				cu_enc_inc(bin, bn, reg);
 				op[prnths_n] = 0;
-				prnths_n = prnths_n - 1;
-				adv_assign();
 			}
 			else if (op[prnths_n] == 4) {
+				load_src(stack_dst);
 				cu_enc_dec(bin, bn, reg);
 				op[prnths_n] = 0;
-				prnths_n = prnths_n - 1;
-				adv_assign();
 			}
 			else if (op[prnths_n] == 5) {
 				cu_enc_bit_not(bin, bn, reg);
@@ -530,44 +533,44 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 		}
 	}
 	
+	void end_assign() {
+		if (op[prnths_n]) {
+			adv_assign();
+		}
+		if (!stack[stack_dst].scop) {
+			if (stack[stack_dst].type == 1 || stack[stack_dst].type == 5) {
+				cu_enc_glo_str_8(bin, bn, rel, reln, stack[stack_dst].str, stack[stack_dst].len);
+			}
+			else if (stack[stack_dst].type == 2 || stack[stack_dst].type == 6) {
+				cu_enc_glo_str_16(bin, bn, rel, reln, stack[stack_dst].str, stack[stack_dst].len);
+			}
+			else if (stack[stack_dst].type == 3 || stack[stack_dst].type == 7) {
+				cu_enc_glo_str_32(bin, bn, rel, reln, stack[stack_dst].str, stack[stack_dst].len);
+			}
+			else if (stack[stack_dst].type == 4 || stack[stack_dst].type == 8) {
+				cu_enc_glo_str_64(bin, bn, rel, reln, stack[stack_dst].str, stack[stack_dst].len);
+			}
+		}
+		else {
+			if (stack[stack_dst].type == 1 || stack[stack_dst].type == 5) {
+				cu_enc_loc_str_8(bin, bn, stack[stack_dst].indx);
+			}
+			else if (stack[stack_dst].type == 2 || stack[stack_dst].type == 6) {
+				cu_enc_loc_str_16(bin, bn, stack[stack_dst].indx);
+			}
+			else if (stack[stack_dst].type == 3 || stack[stack_dst].type == 7) {
+				cu_enc_loc_str_32(bin, bn, stack[stack_dst].indx);
+			}
+			else if (stack[stack_dst].type == 4 || stack[stack_dst].type == 8) {
+				cu_enc_loc_str_64(bin, bn, stack[stack_dst].indx);
+			}
+		}
+		mod = 0;
+	}
+	
 	void next_str() {
 		if (mod == 1) {
-			uint16_t stack_src = fnd_stack(lex);
-			if (stack_src) {
-				if (!stack[stack_src].scop) {
-					if (stack[stack_src].type == 1 || stack[stack_src].type == 5) {
-						cu_enc_glo_load_8(bin, bn, rel, reln, reg, stack[stack_src].str, stack[stack_src].len);
-					}
-					else if (stack[stack_src].type == 2 || stack[stack_src].type == 6) {
-						cu_enc_glo_load_16(bin, bn, rel, reln, reg, stack[stack_src].str, stack[stack_src].len);
-					}
-					else if (stack[stack_src].type == 3 || stack[stack_src].type == 7) {
-						cu_enc_glo_load_32(bin, bn, rel, reln, reg, stack[stack_src].str, stack[stack_src].len);
-					}
-					else if (stack[stack_src].type == 4 || stack[stack_src].type == 8) {
-						cu_enc_glo_load_64(bin, bn, rel, reln, reg, stack[stack_src].str, stack[stack_src].len);
-					}
-				}
-				else {
-					if (stack[stack_src].type == 1 || stack[stack_src].type == 5) {
-						cu_enc_loc_load_8(bin, bn, reg, stack[stack_src].indx);
-					}
-					else if (stack[stack_src].type == 2 || stack[stack_src].type == 6) {
-						cu_enc_loc_load_16(bin, bn, reg, stack[stack_src].indx);
-					}
-					else if (stack[stack_src].type == 3 || stack[stack_src].type == 7) {
-						cu_enc_loc_load_32(bin, bn, reg, stack[stack_src].indx);
-					}
-					else if (stack[stack_src].type == 4 || stack[stack_src].type == 8) {
-						cu_enc_loc_load_64(bin, bn, reg, stack[stack_src].indx);
-					}
-				}
-				stack_src = 0;
-			}
-			else {
-				uint64_t k = cu_str_int_dec(lex, e, path, ln);
-				cu_enc_load_imm(bin, bn, reg, k);
-			}
+			load_src(fnd_stack(lex));
 			adv_assign();
 		}
 		else if (!key && !stack_dst) {
@@ -697,7 +700,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 	for (uint64_t fi = 0; fi < fs.st_size; fi++) {
 		//printf("%c, %u, %u\n", fx[fi], mod, key);
 		
-		if (((fx[fi] >= 97 && fx[fi] <= 122) || (fx[fi] >= 48 && fx[fi] <= 57)  || (fx[fi] >= 65 && fx[fi] <= 90) || fx[fi] == '_' || (fx[fi] == '-' && fx[fi + 1] != ' ')) && !c) { //string
+		if (((fx[fi] >= 97 && fx[fi] <= 122) || (fx[fi] >= 48 && fx[fi] <= 57)  || (fx[fi] >= 65 && fx[fi] <= 90) || fx[fi] == '_' || (fx[fi] == '-' && fx[fi + 1] != ' ' && fx[fi + 1] != '-' && fx[fi + 1] != '-')) && !c) { //string
 			lex[li] = fx[fi];
 			lex[li + 1] = 0;
 			li++;
@@ -706,9 +709,9 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			if (li) {
 				next_str();
 			}
-			if (mod == 1) {
-				prnths_n = prnths_n + 1;
+			if (mod == 0) {
 				op[prnths_n] = 3;
+				mod = 1;
 			}
 			fi = fi + 1;
 		}
@@ -728,9 +731,10 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			if (li) {
 				next_str();
 			}
-			if (mod == 1) {
-				prnths_n = prnths_n + 1;
+			if (mod == 0) {
+				//prnths_n = prnths_n + 1;
 				op[prnths_n] = 4;
+				mod = 1;
 			}
 			fi = fi + 1;
 		}
