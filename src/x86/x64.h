@@ -94,8 +94,6 @@ void x86_64_enc_log_and(uint8_t*, uint64_t*, uint8_t, uint8_t);
 
 void x86_64_enc_log_or(uint8_t*, uint64_t*, uint8_t, uint8_t);
 
-void x86_64_enc_log_xor(uint8_t*, uint64_t*, uint8_t, uint8_t);
-
 void x86_64_enc_mult(uint8_t*, uint64_t*, uint8_t, uint8_t);
 
 void x86_64_enc_div(uint8_t*, uint64_t*, uint8_t, uint8_t);

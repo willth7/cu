@@ -115,7 +115,17 @@ void (*cu_enc_log_and) (uint8_t*, uint64_t*, uint8_t, uint8_t);
 
 void (*cu_enc_log_or) (uint8_t*, uint64_t*, uint8_t, uint8_t);
 
-void (*cu_enc_log_xor) (uint8_t*, uint64_t*, uint8_t, uint8_t);
+void (*cu_enc_log_eq) (uint8_t*, uint64_t*, uint8_t, uint8_t);
+
+void (*cu_enc_log_neq) (uint8_t*, uint64_t*, uint8_t, uint8_t);
+
+void (*cu_enc_log_lt) (uint8_t*, uint64_t*, uint8_t, uint8_t);
+
+void (*cu_enc_log_leq) (uint8_t*, uint64_t*, uint8_t, uint8_t);
+
+void (*cu_enc_log_gt) (uint8_t*, uint64_t*, uint8_t, uint8_t);
+
+void (*cu_enc_log_geq) (uint8_t*, uint64_t*, uint8_t, uint8_t);
 
 void (*cu_enc_mult) (uint8_t*, uint64_t*, uint8_t, uint8_t);
 
@@ -469,27 +479,30 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				cu_enc_log_or(bin, bn, reg - 1, reg);
 			}
 			else if (op[prnths_n] == 14) {
-				//cu_enc_sub(bin, bn, reg - 1, reg);
+				cu_enc_log_eq(bin, bn, reg - 1, reg);
 			}
 			else if (op[prnths_n] == 15) {
-				//cu_enc_sub(bin, bn, reg - 1, reg);
+				cu_enc_log_neq(bin, bn, reg - 1, reg);
 			}
 			else if (op[prnths_n] == 16) {
-				//cu_enc_sub(bin, bn, reg - 1, reg);
+				cu_enc_log_lt(bin, bn, reg - 1, reg);
 			}
 			else if (op[prnths_n] == 17) {
-				//cu_enc_sub(bin, bn, reg - 1, reg);
+				cu_enc_log_leq(bin, bn, reg - 1, reg);
 			}
 			else if (op[prnths_n] == 18) {
-				//cu_enc_sub(bin, bn, reg - 1, reg);
+				cu_enc_log_gt(bin, bn, reg - 1, reg);
 			}
 			else if (op[prnths_n] == 19) {
-				cu_enc_mult(bin, bn, reg - 1, reg);
+				cu_enc_log_geq(bin, bn, reg - 1, reg);
 			}
 			else if (op[prnths_n] == 20) {
-				cu_enc_div(bin, bn, reg - 1, reg);
+				cu_enc_mult(bin, bn, reg - 1, reg);
 			}
 			else if (op[prnths_n] == 21) {
+				cu_enc_div(bin, bn, reg - 1, reg);
+			}
+			else if (op[prnths_n] == 22) {
 				cu_enc_mod(bin, bn, reg - 1, reg);
 			}
 			reg = reg - 1;
@@ -722,6 +735,16 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				op[prnths_n] = 2;
 			}
 		}
+		else if ((fx[fi] == '!') && (fx[fi + 1] == '=') && !c) { //logical not equal to
+			if (li) {
+				next_str();
+			}
+			if (mod == 1) {
+				reg = reg + 1;
+				op[prnths_n] = 15;
+			}
+			fi = fi + 1;
+		}
 		else if ((fx[fi] == '!') && !c) { //logical not
 			if (li) {
 				next_str();
@@ -803,7 +826,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			}
 			if (mod == 1) {
 				reg = reg + 1;
-				op[prnths_n] = 14;
+				op[prnths_n] = 17;
 			}
 			fi = fi + 1;
 		}
@@ -813,7 +836,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			}
 			if (mod == 1) {
 				reg = reg + 1;
-				op[prnths_n] = 14;
+				op[prnths_n] = 16;
 			}
 		}
 		else if ((fx[fi] == '>') && (fx[fi + 1] == '>') && !c) { //bitwise right shift
@@ -832,7 +855,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			}
 			if (mod == 1) {
 				reg = reg + 1;
-				op[prnths_n] = 14;
+				op[prnths_n] = 19;
 			}
 			fi = fi + 1;
 		}
@@ -842,7 +865,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			}
 			if (mod == 1) {
 				reg = reg + 1;
-				op[prnths_n] = 14;
+				op[prnths_n] = 18;
 			}
 		}
 		else if ((fx[fi] == '=') && (fx[fi + 1] == '=') && !c) { //logical equal to
@@ -870,7 +893,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			}
 			if (mod == 1) {
 				reg = reg + 1;
-				op[prnths_n] = 19;
+				op[prnths_n] = 20;
 			}
 		}
 		else if ((fx[fi] == '/') && (fx[fi + 1] == '/') && !c) { //line comment
@@ -889,7 +912,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			}
 			if (mod == 1) {
 				reg = reg + 1;
-				op[prnths_n] = 20;
+				op[prnths_n] = 21;
 			}
 		}
 		else if ((fx[fi] == '%') && !li && !c) { //modulo
@@ -898,7 +921,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			}
 			if (mod == 1) {
 				reg = reg + 1;
-				op[prnths_n] = 21;
+				op[prnths_n] = 22;
 			}
 		}
 		else if (fx[fi] == '\n') {
