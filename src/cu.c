@@ -91,6 +91,38 @@ void (*cu_enc_load_imm) (uint8_t*, uint64_t*, uint8_t, uint64_t);
 
 void (*cu_enc_add) (uint8_t*, uint64_t*, uint8_t, uint8_t);
 
+void (*cu_enc_sub) (uint8_t*, uint64_t*, uint8_t, uint8_t);
+
+void (*cu_enc_inc) (uint8_t*, uint64_t*, uint8_t);
+
+void (*cu_enc_dec) (uint8_t*, uint64_t*, uint8_t);
+
+void (*cu_enc_bit_not) (uint8_t*, uint64_t*, uint8_t);
+
+void (*cu_enc_bit_and) (uint8_t*, uint64_t*, uint8_t, uint8_t);
+
+void (*cu_enc_bit_or) (uint8_t*, uint64_t*, uint8_t, uint8_t);
+
+void (*cu_enc_bit_xor) (uint8_t*, uint64_t*, uint8_t, uint8_t);
+
+void (*cu_enc_bit_shl) (uint8_t*, uint64_t*, uint8_t, uint8_t);
+
+void (*cu_enc_bit_shr) (uint8_t*, uint64_t*, uint8_t, uint8_t);
+
+void (*cu_enc_log_not) (uint8_t*, uint64_t*, uint8_t);
+
+void (*cu_enc_log_and) (uint8_t*, uint64_t*, uint8_t, uint8_t);
+
+void (*cu_enc_log_or) (uint8_t*, uint64_t*, uint8_t, uint8_t);
+
+void (*cu_enc_log_xor) (uint8_t*, uint64_t*, uint8_t, uint8_t);
+
+void (*cu_enc_mult) (uint8_t*, uint64_t*, uint8_t, uint8_t);
+
+void (*cu_enc_div) (uint8_t*, uint64_t*, uint8_t, uint8_t);
+
+void (*cu_enc_mod) (uint8_t*, uint64_t*, uint8_t, uint8_t);
+
 struct cu_var_s {
 	uint8_t* str; //variable name
 	uint8_t len; //string length
@@ -400,6 +432,66 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			if (op[prnths_n] == 1) {
 				cu_enc_add(bin, bn, reg - 1, reg);
 			}
+			else if (op[prnths_n] == 2) {
+				cu_enc_sub(bin, bn, reg - 1, reg);
+			}
+			else if (op[prnths_n] == 3) {
+				cu_enc_inc(bin, bn, reg);
+			}
+			else if (op[prnths_n] == 4) {
+				cu_enc_dec(bin, bn, reg);
+			}
+			else if (op[prnths_n] == 5) {
+				cu_enc_bit_not(bin, bn, reg);
+			}
+			else if (op[prnths_n] == 6) {
+				cu_enc_bit_and(bin, bn, reg - 1, reg);
+			}
+			else if (op[prnths_n] == 7) {
+				cu_enc_bit_or(bin, bn, reg - 1, reg);
+			}
+			else if (op[prnths_n] == 8) {
+				cu_enc_bit_xor(bin, bn, reg - 1, reg);
+			}
+			else if (op[prnths_n] == 9) {
+				cu_enc_bit_shl(bin, bn, reg - 1, reg);
+			}
+			else if (op[prnths_n] == 10) {
+				cu_enc_bit_shr(bin, bn, reg - 1, reg);
+			}
+			else if (op[prnths_n] == 11) {
+				cu_enc_log_not(bin, bn, reg);
+			}
+			else if (op[prnths_n] == 12) {
+				cu_enc_log_and(bin, bn, reg - 1, reg);
+			}
+			else if (op[prnths_n] == 13) {
+				cu_enc_log_or(bin, bn, reg - 1, reg);
+			}
+			else if (op[prnths_n] == 14) {
+				//cu_enc_sub(bin, bn, reg - 1, reg);
+			}
+			else if (op[prnths_n] == 15) {
+				//cu_enc_sub(bin, bn, reg - 1, reg);
+			}
+			else if (op[prnths_n] == 16) {
+				//cu_enc_sub(bin, bn, reg - 1, reg);
+			}
+			else if (op[prnths_n] == 17) {
+				//cu_enc_sub(bin, bn, reg - 1, reg);
+			}
+			else if (op[prnths_n] == 18) {
+				//cu_enc_sub(bin, bn, reg - 1, reg);
+			}
+			else if (op[prnths_n] == 19) {
+				cu_enc_mult(bin, bn, reg - 1, reg);
+			}
+			else if (op[prnths_n] == 20) {
+				cu_enc_div(bin, bn, reg - 1, reg);
+			}
+			else if (op[prnths_n] == 21) {
+				cu_enc_mod(bin, bn, reg - 1, reg);
+			}
 			reg = reg - 1;
 			op[prnths_n] = 0;
 		}
@@ -572,7 +664,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 	for (uint64_t fi = 0; fi < fs.st_size; fi++) {
 		//printf("%c, %u, %u\n", fx[fi], mod, key);
 		
-		if (((fx[fi] >= 97 && fx[fi] <= 122) || (fx[fi] >= 48 && fx[fi] <= 57)  || (fx[fi] >= 65 && fx[fi] <= 90) || fx[fi] == '_' || fx[fi] == '-') && !c) { //string
+		if (((fx[fi] >= 97 && fx[fi] <= 122) || (fx[fi] >= 48 && fx[fi] <= 57)  || (fx[fi] >= 65 && fx[fi] <= 90) || fx[fi] == '_' || (fx[fi] == '-' && fx[fi + 1] != ' ')) && !c) { //string
 			lex[li] = fx[fi];
 			lex[li + 1] = 0;
 			li++;
@@ -581,11 +673,17 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			if (li) {
 				next_str();
 			}
+			fi = fi + 1;
 		}
 		else if ((fx[fi] == '+') && (fx[fi + 1] == '+') && !c) { //increment
 			if (li) {
 				next_str();
 			}
+			if (mod == 1) {
+				reg = reg + 1;
+				op[prnths_n] = 3;
+			}
+			fi = fi + 1;
 		}
 		else if ((fx[fi] == '+') && !c) { //addition
 			if (li) {
@@ -595,87 +693,167 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				reg = reg + 1;
 				op[prnths_n] = 1;
 			}
-			else {
-				//error
-			}
 		}
 		else if ((fx[fi] == '-' && fx[fi + 1] == '>') && li && !c) { //struct access (pointer)
-			
+			fi = fi + 1;
 		}
 		else if ((fx[fi] == '-') && (fx[fi + 1] == '=') && !c) { //subtraction compounded assignment
 			if (li) {
 				next_str();
 			}
+			fi = fi + 1;
 		}
 		else if ((fx[fi] == '-') && (fx[fi + 1] == '-') && !c) { //decrement
 			if (li) {
 				next_str();
 			}
+			if (mod == 1) {
+				reg = reg + 1;
+				op[prnths_n] = 4;
+			}
+			fi = fi + 1;
 		}
 		else if ((fx[fi] == '-') && !c) { //subtraction
 			if (li) {
 				next_str();
+			}
+			if (mod == 1) {
+				reg = reg + 1;
+				op[prnths_n] = 2;
 			}
 		}
 		else if ((fx[fi] == '!') && !c) { //logical not
 			if (li) {
 				next_str();
 			}
+			if (mod == 1) {
+				reg = reg + 1;
+				op[prnths_n] = 11;
+			}	
 		}
 		else if ((fx[fi] == '~') && !c) { //bitwise not
 			if (li) {
 				next_str();
+			}
+			if (mod == 1) {
+				reg = reg + 1;
+				op[prnths_n] = 5;
 			}
 		}
 		else if ((fx[fi] == '&') && (fx[fi + 1] == '&') && !c) { //logical and
 			if (li) {
 				next_str();
 			}
+			if (mod == 1) {
+				reg = reg + 1;
+				op[prnths_n] = 12;
+			}
+			fi = fi + 1;
 		}
 		else if ((fx[fi] == '&') && !c) { //reference or bitwise and
 			if (li) {
 				next_str();
+			}
+			if (mod == 1) {
+				reg = reg + 1;
+				op[prnths_n] = 6;
 			}
 		}
 		else if ((fx[fi] == '|') && (fx[fi + 1] == '|') && !c) { //logical or
 			if (li) {
 				next_str();
 			}
+			if (mod == 1) {
+				reg = reg + 1;
+				op[prnths_n] = 13;
+			}
+			fi = fi + 1;
 		}
 		else if ((fx[fi] == '|') && !c) { //bitwise or
 			if (li) {
 				next_str();
+			}
+			if (mod == 1) {
+				reg = reg + 1;
+				op[prnths_n] = 7;
 			}
 		}
 		else if ((fx[fi] == '^') && !c) { //bitwise exclusive or
 			if (li) {
 				next_str();
 			}
-		}
-		else if ((fx[fi] == '>') && (fx[fi + 1] == '>') && !c) { //bitwise right shift
-			if (li) {
-				next_str();
-			}
-		}
-		else if ((fx[fi] == '>') && !c) { //logical greater than
-			if (li) {
-				next_str();
+			if (mod == 1) {
+				reg = reg + 1;
+				op[prnths_n] = 8;
 			}
 		}
 		else if ((fx[fi] == '<') && (fx[fi + 1] == '<') && !c) { //bitwise left shift
 			if (li) {
 				next_str();
 			}
+			if (mod == 1) {
+				reg = reg + 1;
+				op[prnths_n] = 9;
+			}
+			fi = fi + 1;
+		}
+		else if ((fx[fi] == '<') && (fx[fi + 1] == '=') && !c) { //logical less than or equal to
+			if (li) {
+				next_str();
+			}
+			if (mod == 1) {
+				reg = reg + 1;
+				op[prnths_n] = 14;
+			}
+			fi = fi + 1;
 		}
 		else if ((fx[fi] == '<') && !c) { //logical less than
 			if (li) {
 				next_str();
+			}
+			if (mod == 1) {
+				reg = reg + 1;
+				op[prnths_n] = 14;
+			}
+		}
+		else if ((fx[fi] == '>') && (fx[fi + 1] == '>') && !c) { //bitwise right shift
+			if (li) {
+				next_str();
+			}
+			if (mod == 1) {
+				reg = reg + 1;
+				op[prnths_n] = 10;
+			}
+			fi = fi + 1;
+		}
+		else if ((fx[fi] == '>') && (fx[fi + 1] == '=') && !c) { //logical greater than or equal to
+			if (li) {
+				next_str();
+			}
+			if (mod == 1) {
+				reg = reg + 1;
+				op[prnths_n] = 14;
+			}
+			fi = fi + 1;
+		}
+		else if ((fx[fi] == '>') && !c) { //logical greater than
+			if (li) {
+				next_str();
+			}
+			if (mod == 1) {
+				reg = reg + 1;
+				op[prnths_n] = 14;
 			}
 		}
 		else if ((fx[fi] == '=') && (fx[fi + 1] == '=') && !c) { //logical equal to
 			if (li) {
 				next_str();
 			}
+			if (mod == 1) {
+				reg = reg + 1;
+				op[prnths_n] = 14;
+			}
+			fi = fi + 1;
 		}
 		else if ((fx[fi] == '=') && !c) { //assignment
 			if (li) {
@@ -683,22 +861,16 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			}
 			mod = 1;
 		}
-		else if ((fx[fi] == '>') && (fx[fi + 1] == '=') && !c) { //logical greater than or equal to
-			if (li) {
-				next_str();
-			}
-		}
-		else if ((fx[fi] == '<') && (fx[fi + 1] == '=') && !c) { //logical less than or equal to
-			if (li) {
-				next_str();
-			}
-		}
 		else if (fx[fi] == '*' && fx[fi + 1] == '/' && c == 2) {
 			c = 0;
 		}
 		else if ((fx[fi] == '*') && !c) { //dereference or multiplication
 			if (li) {
 				next_str();
+			}
+			if (mod == 1) {
+				reg = reg + 1;
+				op[prnths_n] = 19;
 			}
 		}
 		else if ((fx[fi] == '/') && (fx[fi + 1] == '/') && !c) { //line comment
@@ -715,10 +887,18 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			if (li) {
 				next_str();
 			}
+			if (mod == 1) {
+				reg = reg + 1;
+				op[prnths_n] = 20;
+			}
 		}
 		else if ((fx[fi] == '%') && !li && !c) { //modulo
 			if (li) {
 				next_str();
+			}
+			if (mod == 1) {
+				reg = reg + 1;
+				op[prnths_n] = 21;
 			}
 		}
 		else if (fx[fi] == '\n') {
@@ -734,7 +914,6 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			if (li) {
 				next_str();
 			}
-			
 		}
 		else if ((fx[fi] == ',') && li && !c) { //next string (parameter)
 			lex[0] = 0;
@@ -905,6 +1084,18 @@ int8_t main(int32_t argc, int8_t** argv) {
 		cu_enc_glo_str_64 = x86_64_enc_glo_str_64;
 		cu_enc_load_imm = x86_64_enc_load_imm;
 		cu_enc_add = x86_64_enc_add;
+		cu_enc_sub = x86_64_enc_sub;
+		cu_enc_inc = x86_64_enc_inc;
+		cu_enc_dec = x86_64_enc_dec;
+		cu_enc_bit_not = x86_64_enc_bit_not;
+		cu_enc_bit_and = x86_64_enc_bit_and;
+		cu_enc_bit_or = x86_64_enc_bit_or;
+		cu_enc_bit_xor = x86_64_enc_bit_xor;
+		cu_enc_bit_shl = x86_64_enc_bit_shl;
+		cu_enc_bit_shr = x86_64_enc_bit_shr;
+		cu_enc_log_not = x86_64_enc_log_not;
+		cu_enc_log_and = x86_64_enc_log_and;
+		cu_enc_log_or = x86_64_enc_log_or;
 	}
 	else {
 		printf("error: unsupported architecture\n");
