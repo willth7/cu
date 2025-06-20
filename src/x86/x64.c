@@ -902,12 +902,23 @@ void x86_64_enc_log_and(uint8_t* bin, uint64_t* bn, uint8_t r0, uint8_t r1) {
 	r0 = x86_64_inc_reg(r0);
 	r1 = x86_64_inc_reg(r1);
 	
-	x86_64_enc_add_reg_reg(bin, bn, r0 | 48, r1 | 48);
+	x86_64_enc_or_reg_reg(bin, bn, r0 | 48, r0 | 48); //or [r0], [r0]
+	x86_64_enc_mov_reg_imm(bin, bn, r0 | 48, 1); //mov [r0], 1
+	x86_64_enc_jne_imm(bin, bn, 3); ///jne 3
+	x86_64_enc_xor_reg_reg(bin, bn, r0 | 48, r0 | 48); //xor [r0], [r0]
+	x86_64_enc_or_reg_reg(bin, bn, r1 | 48, r1 | 48); //or [r1], [r1]
+	x86_64_enc_jne_imm(bin, bn, 3); ///jne 3
+	x86_64_enc_xor_reg_reg(bin, bn, r0 | 48, r0 | 48); //xor [r0], [r0]
 }
 
 void x86_64_enc_log_or(uint8_t* bin, uint64_t* bn, uint8_t r0, uint8_t r1) {
 	r0 = x86_64_inc_reg(r0);
 	r1 = x86_64_inc_reg(r1);
 	
-	x86_64_enc_add_reg_reg(bin, bn, r0 | 48, r1 | 48);
+	x86_64_enc_or_reg_reg(bin, bn, r0 | 48, r0 | 48); //or [r0], [r0]
+	x86_64_enc_mov_reg_imm(bin, bn, r0 | 48, 1); //mov [r0], 1
+	x86_64_enc_jne_imm(bin, bn, 8); ///jne 8
+	x86_64_enc_or_reg_reg(bin, bn, r1 | 48, r1 | 48); //or [r1], [r1]
+	x86_64_enc_jne_imm(bin, bn, 3); ///jne 3
+	x86_64_enc_xor_reg_reg(bin, bn, r0 | 48, r0 | 48); //xor [r0], [r0]
 }
