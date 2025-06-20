@@ -922,3 +922,64 @@ void x86_64_enc_log_or(uint8_t* bin, uint64_t* bn, uint8_t r0, uint8_t r1) {
 	x86_64_enc_jne_imm(bin, bn, 3); ///jne 3
 	x86_64_enc_xor_reg_reg(bin, bn, r0 | 48, r0 | 48); //xor [r0], [r0]
 }
+
+void x86_64_enc_log_eq(uint8_t* bin, uint64_t* bn, uint8_t r0, uint8_t r1) {
+	r0 = x86_64_inc_reg(r0);
+	r1 = x86_64_inc_reg(r1);
+	
+	x86_64_enc_cmp_reg_reg(bin, bn, r0 | 48, r1 | 48); //cmp [r0], [r1]
+	x86_64_enc_mov_reg_imm(bin, bn, r0 | 48, 1); //mov [r0], 1
+	x86_64_enc_je_imm(bin, bn, 3); ///je 3
+	x86_64_enc_xor_reg_reg(bin, bn, r0 | 48, r0 | 48); //xor [r0], [r0]
+}
+
+void x86_64_enc_log_neq(uint8_t* bin, uint64_t* bn, uint8_t r0, uint8_t r1) {
+	r0 = x86_64_inc_reg(r0);
+	r1 = x86_64_inc_reg(r1);
+	
+	x86_64_enc_cmp_reg_reg(bin, bn, r0 | 48, r1 | 48); //cmp [r0], [r1]
+	x86_64_enc_mov_reg_imm(bin, bn, r0 | 48, 1); //mov [r0], 1
+	x86_64_enc_jne_imm(bin, bn, 3); ///jne 3
+	x86_64_enc_xor_reg_reg(bin, bn, r0 | 48, r0 | 48); //xor [r0], [r0]
+}
+
+void x86_64_enc_log_lt(uint8_t* bin, uint64_t* bn, uint8_t r0, uint8_t r1) {
+	r0 = x86_64_inc_reg(r0);
+	r1 = x86_64_inc_reg(r1);
+	
+	x86_64_enc_cmp_reg_reg(bin, bn, r0 | 48, r1 | 48); //cmp [r0], [r1]
+	x86_64_enc_mov_reg_imm(bin, bn, r0 | 48, 1); //mov [r0], 1
+	x86_64_enc_jl_imm(bin, bn, 3); ///jl 3
+	x86_64_enc_xor_reg_reg(bin, bn, r0 | 48, r0 | 48); //xor [r0], [r0]
+}
+
+void x86_64_enc_log_leq(uint8_t* bin, uint64_t* bn, uint8_t r0, uint8_t r1) {
+	r0 = x86_64_inc_reg(r0);
+	r1 = x86_64_inc_reg(r1);
+	
+	x86_64_enc_cmp_reg_reg(bin, bn, r0 | 48, r1 | 48); //cmp [r0], [r1]
+	x86_64_enc_mov_reg_imm(bin, bn, r0 | 48, 1); //mov [r0], 1
+	x86_64_enc_jle_imm(bin, bn, 3); ///j;e 3
+	x86_64_enc_xor_reg_reg(bin, bn, r0 | 48, r0 | 48); //xor [r0], [r0]
+}
+
+void x86_64_enc_log_gt(uint8_t* bin, uint64_t* bn, uint8_t r0, uint8_t r1) {
+	r0 = x86_64_inc_reg(r0);
+	r1 = x86_64_inc_reg(r1);
+	
+	x86_64_enc_cmp_reg_reg(bin, bn, r0 | 48, r1 | 48); //cmp [r0], [r1]
+	x86_64_enc_mov_reg_imm(bin, bn, r0 | 48, 1); //mov [r0], 1
+	x86_64_enc_jg_imm(bin, bn, 3); ///jg 3
+	x86_64_enc_xor_reg_reg(bin, bn, r0 | 48, r0 | 48); //xor [r0], [r0]
+}
+
+void x86_64_enc_log_geq(uint8_t* bin, uint64_t* bn, uint8_t r0, uint8_t r1) {
+	r0 = x86_64_inc_reg(r0);
+	r1 = x86_64_inc_reg(r1);
+	
+	x86_64_enc_cmp_reg_reg(bin, bn, r0 | 48, r1 | 48); //cmp [r0], [r1]
+	x86_64_enc_mov_reg_imm(bin, bn, r0 | 48, 1); //mov [r0], 1
+	x86_64_enc_jge_imm(bin, bn, 3); ///jge 3
+	x86_64_enc_xor_reg_reg(bin, bn, r0 | 48, r0 | 48); //xor [r0], [r0]
+}
+

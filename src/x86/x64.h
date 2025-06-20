@@ -94,6 +94,18 @@ void x86_64_enc_log_and(uint8_t*, uint64_t*, uint8_t, uint8_t);
 
 void x86_64_enc_log_or(uint8_t*, uint64_t*, uint8_t, uint8_t);
 
+void x86_64_enc_log_eq(uint8_t*, uint64_t*, uint8_t, uint8_t);
+
+void x86_64_enc_log_neq(uint8_t*, uint64_t*, uint8_t, uint8_t);
+
+void x86_64_enc_log_lt(uint8_t*, uint64_t*, uint8_t, uint8_t);
+
+void x86_64_enc_log_leq(uint8_t*, uint64_t*, uint8_t, uint8_t);
+
+void x86_64_enc_log_gt(uint8_t*, uint64_t*, uint8_t, uint8_t);
+
+void x86_64_enc_log_geq(uint8_t*, uint64_t*, uint8_t, uint8_t);
+
 void x86_64_enc_mult(uint8_t*, uint64_t*, uint8_t, uint8_t);
 
 void x86_64_enc_div(uint8_t*, uint64_t*, uint8_t, uint8_t);

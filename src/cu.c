@@ -1128,6 +1128,12 @@ int8_t main(int32_t argc, int8_t** argv) {
 		cu_enc_log_not = x86_64_enc_log_not;
 		cu_enc_log_and = x86_64_enc_log_and;
 		cu_enc_log_or = x86_64_enc_log_or;
+		cu_enc_log_eq = x86_64_enc_log_eq;
+		cu_enc_log_neq = x86_64_enc_log_neq;
+		cu_enc_log_lt = x86_64_enc_log_lt;
+		cu_enc_log_leq = x86_64_enc_log_leq;
+		cu_enc_log_gt = x86_64_enc_log_gt;
+		cu_enc_log_geq = x86_64_enc_log_geq;
 	}
 	else {
 		printf("error: unsupported architecture\n");
