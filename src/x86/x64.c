@@ -513,6 +513,20 @@ void x86_64_enc_not_reg(uint8_t* bin, uint64_t* bn, uint8_t reg) {
 	x86_64_inst_mod(bin, bn, 3, reg, 2); //modrm
 }
 
+void x86_64_enc_mul_rax_reg(uint8_t* bin, uint64_t* bn, uint8_t reg) {
+	x86_64_prfx_leg(bin, bn, 0, reg);
+	x86_64_prfx_rex(bin, bn, reg, 0, reg & 48);
+	x86_64_inst_byt(bin, bn, 246 + !!(reg & 48)); //op
+	x86_64_inst_mod(bin, bn, 3, reg, 4); //modrm
+}
+
+void x86_64_enc_div_rax_reg(uint8_t* bin, uint64_t* bn, uint8_t reg) {
+	x86_64_prfx_leg(bin, bn, 0, reg);
+	x86_64_prfx_rex(bin, bn, reg, 0, reg & 48);
+	x86_64_inst_byt(bin, bn, 246 + !!(reg & 48)); //op
+	x86_64_inst_mod(bin, bn, 3, reg, 4); //modrm
+}
+
 void x86_64_enc_syscall(uint8_t* bin, uint64_t* bn) {
 	x86_64_inst_byt(bin, bn, 15); //op
 	x86_64_inst_byt(bin, bn, 5); //op
@@ -540,11 +554,11 @@ rax, rcx, rdx, rbx, and r8 - r15 are general purpose registers
 
 rsp, the stack pointer
 
-rbp, the base pointer, can't actually use this as a pointer because of rip
+rbp, the base pointer, can't actually use this as a pointer because of rip, will be used as an exchange register
 
-rsi, the source index, will be used as a generic pointer register
+rsi, the source index, will be used as an exchange register
 
-rdi, the destination index, will be used as a generic index register
+rdi, the destination index, will be used as an register
 
 rip, the instruction pointer
 
@@ -983,3 +997,77 @@ void x86_64_enc_log_geq(uint8_t* bin, uint64_t* bn, uint8_t r0, uint8_t r1) {
 	x86_64_enc_xor_reg_reg(bin, bn, r0 | 48, r0 | 48); //xor [r0], [r0]
 }
 
+void x86_64_enc_mult(uint8_t* bin, uint64_t* bn, uint8_t r0, uint8_t r1) {
+	r0 = x86_64_inc_reg(r0);
+	r1 = x86_64_inc_reg(r1);
+	
+	if (r0 != 0) {
+		x86_64_enc_mov_reg_reg(bin, bn, 54, 48); //mov rsi, rax
+		x86_64_enc_mov_reg_reg(bin, bn, 48, r0 | 48); //mov rax, [r0]
+	}
+	if (r1 != 2) {
+		x86_64_enc_mov_reg_reg(bin, bn, 55, 50); //mov rdi, rdx
+	}
+	x86_64_enc_mul_rax_reg(bin, bn, r1 | 48); //mul rax, [r1]
+	if (r0 != 0) {
+		x86_64_enc_mov_reg_reg(bin, bn, r0 | 48, 48); //mov [r0], rax
+		x86_64_enc_mov_reg_reg(bin, bn, 48, 54); //mov rax, rsi
+	}
+	if (r1 != 2) {
+		x86_64_enc_mov_reg_reg(bin, bn, 50, 55); //mov rdx, rdi
+	}
+}
+
+void x86_64_enc_div(uint8_t* bin, uint64_t* bn, uint8_t r0, uint8_t r1) {
+	r0 = x86_64_inc_reg(r0);
+	r1 = x86_64_inc_reg(r1);
+	
+	if (r0 != 0) {
+		x86_64_enc_mov_reg_reg(bin, bn, 54, 48); //mov rsi, rax
+		x86_64_enc_mov_reg_reg(bin, bn, 48, r0 | 48); //mov rax, [r0]
+	}
+	if (r1 == 2) {
+		x86_64_enc_mov_reg_reg(bin, bn, 53, 50); //mov rbp, rdx
+		x86_64_enc_mov_reg_imm(bin, bn, 50, 0); //mov rdx, 0
+		x86_64_enc_div_rax_reg(bin, bn, 53); //div rax, rbp
+	}
+	else {
+		x86_64_enc_mov_reg_reg(bin, bn, 55, 50); //mov rdi, rdx
+		x86_64_enc_mov_reg_imm(bin, bn, 50, 0); //mov rdx, 0
+		x86_64_enc_div_rax_reg(bin, bn, r1 | 48); //div rax, [r1]
+		x86_64_enc_mov_reg_reg(bin, bn, 50, 55); //mov rdx, rdi
+	}
+	if (r0 != 0) {
+		x86_64_enc_mov_reg_reg(bin, bn, r0 | 48, 48); //mov [r0], rax
+		x86_64_enc_mov_reg_reg(bin, bn, 48, 54); //mov rax, rsi
+	}
+}
+
+void x86_64_enc_mod(uint8_t* bin, uint64_t* bn, uint8_t r0, uint8_t r1) {
+	r0 = x86_64_inc_reg(r0);
+	r1 = x86_64_inc_reg(r1);
+	
+	if (r0 != 0) {
+		x86_64_enc_mov_reg_reg(bin, bn, 54, 48); //mov rsi, rax
+		x86_64_enc_mov_reg_reg(bin, bn, 48, r0 | 48); //mov rax, [r0]
+	}
+	if (r1 == 2) {
+		x86_64_enc_mov_reg_reg(bin, bn, 53, 50); //mov rbp, rdx
+		x86_64_enc_mov_reg_imm(bin, bn, 50, 0); //mov rdx, 0
+		x86_64_enc_div_rax_reg(bin, bn, 53); //div rax, rbp
+	}
+	else {
+		x86_64_enc_mov_reg_reg(bin, bn, 55, 50); //mov rdi, rdx
+		x86_64_enc_mov_reg_imm(bin, bn, 50, 0); //mov rdx, 0
+		x86_64_enc_div_rax_reg(bin, bn, r1 | 48); //div rax, [r1]
+	}
+	if (r0 != 2) {
+		x86_64_enc_mov_reg_reg(bin, bn, r0 | 48, 50); //mov [r0], rdx
+	}
+	if (r0 != 0) {
+		x86_64_enc_mov_reg_reg(bin, bn, 48, 54); //mov rax, rsi
+	}
+	if (r1 != 2) {
+		x86_64_enc_mov_reg_reg(bin, bn, 50, 55); //mov rdx, rdi);
+	}
+}
