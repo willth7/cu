@@ -39,6 +39,8 @@ void (*cu_enc_ent) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*);
 
 void (*cu_enc_exit) (uint8_t*, uint64_t*);
 
+void (*cu_enc_loc_ref) (uint8_t*, uint64_t*, uint8_t, uint32_t);
+
 void (*cu_enc_loc_dec_8) (uint8_t*, uint64_t*);
 
 void (*cu_enc_loc_dec_16) (uint8_t*, uint64_t*);
@@ -62,6 +64,8 @@ void (*cu_enc_loc_str_16) (uint8_t*, uint64_t*, uint32_t);
 void (*cu_enc_loc_str_32) (uint8_t*, uint64_t*, uint32_t);
 
 void (*cu_enc_loc_str_64) (uint8_t*, uint64_t*, uint32_t);
+
+void (*cu_enc_glo_ref) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t, uint8_t*, uint8_t);
 
 void (*cu_enc_glo_dec_8) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t*, uint8_t);
 
@@ -325,7 +329,8 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 	// 1 - assignment
 	uint8_t key = 0;		//current keyword
 	uint8_t reg = 0;		//register
-	uint8_t op[12] = {};			//operation
+	uint8_t op[12] = {};	//operation
+	uint8_t ref = 0;		//0 - null, 1 - reference, 2 - dereference
 	
 	uint8_t brackt_n = 0;	//level inside of brackets
 	uint8_t prnths_n = 0;	//level inside of parentheses
@@ -381,7 +386,11 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 	
 	void load_src(uint16_t stack_src) {
 		if (stack_src) {
-			if (!stack[stack_src].scop) {
+			if (!stack[stack_src].scop && ref == 1) {
+				cu_enc_glo_ref(bin, bn, rel, reln, reg, stack[stack_src].str, stack[stack_src].len);
+				ref = 0;
+			}
+			else if (!stack[stack_src].scop) {
 				if (stack[stack_src].type == 1 || stack[stack_src].type == 5) {
 					cu_enc_glo_load_8(bin, bn, rel, reln, reg, stack[stack_src].str, stack[stack_src].len);
 				}
@@ -394,6 +403,10 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				else if (stack[stack_src].type == 4 || stack[stack_src].type == 8) {
 					cu_enc_glo_load_64(bin, bn, rel, reln, reg, stack[stack_src].str, stack[stack_src].len);
 				}
+			}
+			else if (ref == 1) {
+				cu_enc_loc_ref(bin, bn, reg, stack[stack_src].indx);
+				ref = 0;
 			}
 			else {
 				if (stack[stack_src].type == 1 || stack[stack_src].type == 5) {
@@ -789,7 +802,10 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			if (li) {
 				next_str();
 			}
-			if (mod == 1) {
+			if (mod == 1 && fx[fi + 1] != ' ') { //reference
+				ref = 1;
+			}
+			else if (mod == 1) { //bitwise and
 				reg = reg + 1;
 				op[prnths_n] = 6;
 			}
@@ -903,7 +919,13 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			if (li) {
 				next_str();
 			}
-			if (mod == 1) {
+			if (mod == 0) { //dereference destination
+				
+			}
+			else if (mod == 1 && fx[fi + 1] != ' ') { //dereference source
+				
+			}
+			else if (mod == 1) {
 				reg = reg + 1;
 				op[prnths_n] = 20;
 			}
@@ -1090,6 +1112,7 @@ int8_t main(int32_t argc, int8_t** argv) {
 	else if (!strcmp(argv[1], "x86-64")) {
 		cu_enc_ent = x86_64_enc_ent;
 		cu_enc_exit = x86_64_enc_exit;
+		cu_enc_loc_ref = x86_64_enc_loc_ref;
 		cu_enc_loc_dec_8 = x86_64_enc_loc_dec_8;
 		cu_enc_loc_dec_16 = x86_64_enc_loc_dec_16;
 		cu_enc_loc_dec_32 = x86_64_enc_loc_dec_32;
@@ -1102,6 +1125,7 @@ int8_t main(int32_t argc, int8_t** argv) {
 		cu_enc_loc_str_16 = x86_64_enc_loc_str_16;
 		cu_enc_loc_str_32 = x86_64_enc_loc_str_32;
 		cu_enc_loc_str_64 = x86_64_enc_loc_str_64;
+		cu_enc_glo_ref = x86_64_enc_glo_ref;
 		cu_enc_glo_dec_8 = x86_64_enc_glo_dec_8;
 		cu_enc_glo_dec_16 = x86_64_enc_glo_dec_16;
 		cu_enc_glo_dec_32 = x86_64_enc_glo_dec_32;
