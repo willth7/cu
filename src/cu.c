@@ -65,6 +65,14 @@ void (*cu_enc_loc_str_32) (uint8_t*, uint64_t*, uint32_t);
 
 void (*cu_enc_loc_str_64) (uint8_t*, uint64_t*, uint32_t);
 
+void (*cu_enc_loc_dref_8) (uint8_t*, uint64_t*, uint32_t);
+
+void (*cu_enc_loc_dref_16) (uint8_t*, uint64_t*, uint32_t);
+
+void (*cu_enc_loc_dref_32) (uint8_t*, uint64_t*, uint32_t);
+
+void (*cu_enc_loc_dref_64) (uint8_t*, uint64_t*, uint32_t);
+
 void (*cu_enc_glo_ref) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t, uint8_t*, uint8_t);
 
 void (*cu_enc_glo_dec_8) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t*, uint8_t);
@@ -90,6 +98,14 @@ void (*cu_enc_glo_str_16) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uin
 void (*cu_enc_glo_str_32) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t*, uint8_t);
 
 void (*cu_enc_glo_str_64) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t*, uint8_t);
+
+void (*cu_enc_glo_dref_8) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t*, uint8_t);
+
+void (*cu_enc_glo_dref_16) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t*, uint8_t);
+
+void (*cu_enc_glo_dref_32) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t*, uint8_t);
+
+void (*cu_enc_glo_dref_64) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t*, uint8_t);
 
 void (*cu_enc_load_imm) (uint8_t*, uint64_t*, uint8_t, uint64_t);
 
@@ -330,7 +346,6 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 	uint8_t key = 0;		//current keyword
 	uint8_t reg = 0;		//register
 	uint8_t op[12] = {};	//operation
-	uint8_t ref = 0;		//0 - null, 1 - reference, 2 - dereference
 	
 	uint8_t brackt_n = 0;	//level inside of brackets
 	uint8_t prnths_n = 0;	//level inside of parentheses
@@ -338,7 +353,9 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 	struct cu_var_s stack[65536];
 	uint16_t stack_n = 1;
 	
-	uint16_t stack_dst = 0; //variable assignment
+	uint16_t stack_dst = 0;	//variable assignment
+	uint8_t ref_dst = 0;	//dereference flag
+	uint8_t ref[12] = {};	//0 - null, 1 - dereference, 1 - dereference
 	
 	cu_enc_ent(bin, bn, rel, reln); 
 	cu_enc_exit(bin, bn);
@@ -386,9 +403,9 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 	
 	void load_src(uint16_t stack_src) {
 		if (stack_src) {
-			if (!stack[stack_src].scop && ref == 1) {
+			if (!stack[stack_src].scop && ref[prnths_n] == 2) {
 				cu_enc_glo_ref(bin, bn, rel, reln, reg, stack[stack_src].str, stack[stack_src].len);
-				ref = 0;
+				ref[prnths_n] = 0;
 			}
 			else if (!stack[stack_src].scop) {
 				if (stack[stack_src].type == 1 || stack[stack_src].type == 5) {
@@ -404,9 +421,9 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 					cu_enc_glo_load_64(bin, bn, rel, reln, reg, stack[stack_src].str, stack[stack_src].len);
 				}
 			}
-			else if (ref == 1) {
+			else if (ref[prnths_n] == 2) {
 				cu_enc_loc_ref(bin, bn, reg, stack[stack_src].indx);
-				ref = 0;
+				ref[prnths_n] = 0;
 			}
 			else {
 				if (stack[stack_src].type == 1 || stack[stack_src].type == 5) {
@@ -550,7 +567,22 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 		if (op[prnths_n]) {
 			adv_assign();
 		}
-		if (!stack[stack_dst].scop) {
+		if (!stack[stack_dst].scop && ref_dst) {
+			if (stack[stack_dst].type == 1 || stack[stack_dst].type == 5) {
+				cu_enc_glo_dref_8(bin, bn, rel, reln, stack[stack_dst].str, stack[stack_dst].len);
+			}
+			else if (stack[stack_dst].type == 2 || stack[stack_dst].type == 6) {
+				cu_enc_glo_dref_16(bin, bn, rel, reln, stack[stack_dst].str, stack[stack_dst].len);
+			}
+			else if (stack[stack_dst].type == 3 || stack[stack_dst].type == 7) {
+				cu_enc_glo_dref_32(bin, bn, rel, reln, stack[stack_dst].str, stack[stack_dst].len);
+			}
+			else if (stack[stack_dst].type == 4 || stack[stack_dst].type == 8) {
+				cu_enc_glo_dref_64(bin, bn, rel, reln, stack[stack_dst].str, stack[stack_dst].len);
+			}
+			ref_dst = 0;
+		}
+		else if (!stack[stack_dst].scop) {
 			if (stack[stack_dst].type == 1 || stack[stack_dst].type == 5) {
 				cu_enc_glo_str_8(bin, bn, rel, reln, stack[stack_dst].str, stack[stack_dst].len);
 			}
@@ -563,6 +595,21 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			else if (stack[stack_dst].type == 4 || stack[stack_dst].type == 8) {
 				cu_enc_glo_str_64(bin, bn, rel, reln, stack[stack_dst].str, stack[stack_dst].len);
 			}
+		}
+		else if (ref_dst) {
+			if (stack[stack_dst].type == 1 || stack[stack_dst].type == 5) {
+				cu_enc_loc_dref_8(bin, bn, stack[stack_dst].indx);
+			}
+			else if (stack[stack_dst].type == 2 || stack[stack_dst].type == 6) {
+				cu_enc_loc_dref_16(bin, bn, stack[stack_dst].indx);
+			}
+			else if (stack[stack_dst].type == 3 || stack[stack_dst].type == 7) {
+				cu_enc_loc_dref_32(bin, bn, stack[stack_dst].indx);
+			}
+			else if (stack[stack_dst].type == 4 || stack[stack_dst].type == 8) {
+				cu_enc_loc_dref_64(bin, bn, stack[stack_dst].indx);
+			}
+			ref_dst = 0;
 		}
 		else {
 			if (stack[stack_dst].type == 1 || stack[stack_dst].type == 5) {
@@ -803,7 +850,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				next_str();
 			}
 			if (mod == 1 && fx[fi + 1] != ' ') { //reference
-				ref = 1;
+				ref[prnths_n] = 2;
 			}
 			else if (mod == 1) { //bitwise and
 				reg = reg + 1;
@@ -919,13 +966,10 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			if (li) {
 				next_str();
 			}
-			if (mod == 0) { //dereference destination
-				
+			if (fx[fi + 1] != ' ') { //dereference
+				ref_dst = 1;
 			}
-			else if (mod == 1 && fx[fi + 1] != ' ') { //dereference source
-				
-			}
-			else if (mod == 1) {
+			else if (mod == 1) { //multiplication
 				reg = reg + 1;
 				op[prnths_n] = 20;
 			}
@@ -1125,6 +1169,10 @@ int8_t main(int32_t argc, int8_t** argv) {
 		cu_enc_loc_str_16 = x86_64_enc_loc_str_16;
 		cu_enc_loc_str_32 = x86_64_enc_loc_str_32;
 		cu_enc_loc_str_64 = x86_64_enc_loc_str_64;
+		cu_enc_loc_dref_8 = x86_64_enc_loc_dref_8;
+		cu_enc_loc_dref_16 = x86_64_enc_loc_dref_16;
+		cu_enc_loc_dref_32 = x86_64_enc_loc_dref_32;
+		cu_enc_loc_dref_64 = x86_64_enc_loc_dref_64;
 		cu_enc_glo_ref = x86_64_enc_glo_ref;
 		cu_enc_glo_dec_8 = x86_64_enc_glo_dec_8;
 		cu_enc_glo_dec_16 = x86_64_enc_glo_dec_16;
@@ -1138,6 +1186,10 @@ int8_t main(int32_t argc, int8_t** argv) {
 		cu_enc_glo_str_16 = x86_64_enc_glo_str_16;
 		cu_enc_glo_str_32 = x86_64_enc_glo_str_32;
 		cu_enc_glo_str_64 = x86_64_enc_glo_str_64;
+		cu_enc_glo_dref_8 = x86_64_enc_glo_dref_8;
+		cu_enc_glo_dref_16 = x86_64_enc_glo_dref_16;
+		cu_enc_glo_dref_32 = x86_64_enc_glo_dref_32;
+		cu_enc_glo_dref_64 = x86_64_enc_glo_dref_64;
 		cu_enc_load_imm = x86_64_enc_load_imm;
 		cu_enc_add = x86_64_enc_add;
 		cu_enc_sub = x86_64_enc_sub;
