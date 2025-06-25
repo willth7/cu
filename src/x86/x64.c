@@ -210,6 +210,32 @@ void x86_64_enc_mov_reg_addr_disp(uint8_t* bin, uint64_t* bn, uint8_t r0, uint8_
 	}
 }
 
+void x86_64_enc_mov_reg_addr_indx_disp(uint8_t* bin, uint64_t* bn, uint8_t r0, uint8_t r1, uint8_t r2, uint8_t d) {
+	if (d == 0) {
+		x86_64_prfx_leg(bin, bn, r1, r0);
+	 	x86_64_prfx_rex(bin, bn, r1, r2, r0);
+ 		x86_64_inst_byt(bin, bn, 138 + !!(r0 & 48)); //op
+ 		x86_64_inst_mod(bin, bn, 0, 4, r0); //modrm
+ 		x86_64_inst_mod(bin, bn, 0, r1, r2); //sib
+	}
+	else if (d < 256) {
+		x86_64_prfx_leg(bin, bn, r1, r0);
+	 	x86_64_prfx_rex(bin, bn, r1, r2, r0);
+ 		x86_64_inst_byt(bin, bn, 138 + !!(r0 & 48)); //op
+ 		x86_64_inst_mod(bin, bn, 1, 4, r0); //modrm
+ 		x86_64_inst_mod(bin, bn, 0, r1, r2); //sib
+ 		x86_64_inst_byt(bin, bn, d); //disp
+	}
+	else {
+		x86_64_prfx_leg(bin, bn, r1, r0);
+ 		x86_64_prfx_rex(bin, bn, r1, r2, r0);
+		x86_64_inst_byt(bin, bn, 138 + !!(r0 & 48)); //op
+ 		x86_64_inst_mod(bin, bn, 2, 4, r0); //modrm
+ 		x86_64_inst_mod(bin, bn, 0, r1, r2); //sib
+ 		x86_64_inst_k32(bin, bn, d); //disp
+	}
+}
+
 void x86_64_enc_mov_addr_disp_reg(uint8_t* bin, uint64_t* bn, uint8_t r0, uint32_t d, uint8_t r1) {
 	if (r0 == 117 && d == 0) {
 		x86_64_prfx_leg(bin, bn, r0, r1);
@@ -254,6 +280,32 @@ void x86_64_enc_mov_addr_disp_reg(uint8_t* bin, uint64_t* bn, uint8_t r0, uint32
  		x86_64_inst_byt(bin, bn, 136 + !!(r1 & 48)); //op
  		x86_64_inst_mod(bin, bn, 2, r0, r1); //modrm
 		x86_64_inst_k32(bin, bn, d); //disp
+	}
+}
+
+void x86_64_enc_mov_addr_indx_disp_reg(uint8_t* bin, uint64_t* bn, uint8_t r0, uint8_t r1, uint32_t d, uint8_t r2) {
+	if (d == 0) {
+		x86_64_prfx_leg(bin, bn, r0, r2);
+	 	x86_64_prfx_rex(bin, bn, r0, r1, r2);
+ 		x86_64_inst_byt(bin, bn, 136 + !!(r2 & 48)); //op
+ 		x86_64_inst_mod(bin, bn, 0, 4, r2); //modrm
+ 		x86_64_inst_mod(bin, bn, 0, r0, r1); //sib
+	}
+	else if (d < 256) {
+		x86_64_prfx_leg(bin, bn, r0, r2);
+	 	x86_64_prfx_rex(bin, bn, r0, r1, r2);
+ 		x86_64_inst_byt(bin, bn, 136 + !!(r2 & 48)); //op
+ 		x86_64_inst_mod(bin, bn, 1, 4, r2); //modrm
+ 		x86_64_inst_mod(bin, bn, 0, r0, r1); //sib
+ 		x86_64_inst_byt(bin, bn, d); //disp
+	}
+	else {
+		x86_64_prfx_leg(bin, bn, r0, r2);
+ 		x86_64_prfx_rex(bin, bn, r0, r1, r2);
+		x86_64_inst_byt(bin, bn, 136 + !!(r2 & 48)); //op
+ 		x86_64_inst_mod(bin, bn, 2, 4, r2); //modrm
+ 		x86_64_inst_mod(bin, bn, 0, r0, r1); //sib
+ 		x86_64_inst_k32(bin, bn, d); //disp
 	}
 }
 
@@ -309,6 +361,7 @@ void x86_64_enc_lea_reg_addr_disp(uint8_t* bin, uint64_t* bn, uint8_t r0, uint8_
  		x86_64_inst_k32(bin, bn, d); //disp
 	}
 }
+
 void x86_64_enc_shl_reg_imm(uint8_t* bin, uint64_t* bn, uint8_t r, uint8_t k) {
 	x86_64_prfx_leg(bin, bn, 0, r);
 	x86_64_prfx_rex(bin, bn, r, 0, r & 48);
@@ -603,7 +656,7 @@ rbp, the base pointer, can't actually use this as a pointer because of rip, will
 
 rsi, the source index, will be used as an exchange register
 
-rdi, the destination index, will be used as an register
+rdi, the destination index
 
 rip, the instruction pointer
 
@@ -651,22 +704,22 @@ void x86_64_enc_loc_dec_64(uint8_t* bin, uint64_t* bn) {
 void x86_64_enc_loc_load_8(uint8_t* bin, uint64_t* bn, uint8_t reg, uint32_t indx) {
 	reg = x86_64_inc_reg(reg);
 	
-	x86_64_enc_mov_reg_addr_disp(bin, bn, reg | 48, 52, indx); //mov [reg], (rsp, [indx])
-	x86_64_enc_and_reg_imm(bin, bn, reg | 48, 255); //and [reg], 255
+	x86_64_enc_xor_reg_reg(bin, bn, reg | 48, reg | 48); //xor [reg], [reg]
+	x86_64_enc_mov_reg_addr_disp(bin, bn, reg, 52, indx); //mov [reg], (rsp, [indx])
 }
 
 void x86_64_enc_loc_load_16(uint8_t* bin, uint64_t* bn, uint8_t reg, uint32_t indx) {
 	reg = x86_64_inc_reg(reg);
 	
-	x86_64_enc_mov_reg_addr_disp(bin, bn, reg | 48, 52, indx); //mov [reg], (rsp, [indx])
-	x86_64_enc_and_reg_imm(bin, bn, reg | 48, 65535); //and [reg], 65535
+	x86_64_enc_xor_reg_reg(bin, bn, reg | 48, reg | 48); //xor [reg], [reg]
+	x86_64_enc_mov_reg_addr_disp(bin, bn, reg | 16, 52, indx); //mov [reg], (rsp, [indx])
 }
 
 void x86_64_enc_loc_load_32(uint8_t* bin, uint64_t* bn, uint8_t reg, uint32_t indx) {
 	reg = x86_64_inc_reg(reg);
 	
-	x86_64_enc_mov_reg_addr_disp(bin, bn, reg | 48, 52, indx); //mov [reg], (rsp, [indx])
-	x86_64_enc_and_reg_imm(bin, bn, reg | 48, 4294967295); //and [reg], 4294967295
+	x86_64_enc_xor_reg_reg(bin, bn, reg | 48, reg | 48); //xor [reg], [reg]
+	x86_64_enc_mov_reg_addr_disp(bin, bn, reg | 32, 52, indx); //mov [reg], (rsp, [indx])
 }
 
 void x86_64_enc_loc_load_64(uint8_t* bin, uint64_t* bn, uint8_t reg, uint32_t indx) {
@@ -676,27 +729,15 @@ void x86_64_enc_loc_load_64(uint8_t* bin, uint64_t* bn, uint8_t reg, uint32_t in
 }
 
 void x86_64_enc_loc_str_8(uint8_t* bin, uint64_t* bn, uint32_t indx) {
-	x86_64_enc_mov_reg_addr_disp(bin, bn, 49, 52, indx + 1); //mov rcx, (rsp, [indx + 1])
-	x86_64_enc_shl_reg_imm(bin, bn, 49, 8); //shl rcx, 8
-	x86_64_enc_and_reg_imm(bin, bn, 48, 255); //and rax, 255
-	x86_64_enc_or_reg_reg(bin, bn, 48, 49); //or rax, rcx
-	x86_64_enc_mov_addr_disp_reg(bin, bn, 52, indx, 48); //mov (rsp, [indx]), rax
+	x86_64_enc_mov_addr_disp_reg(bin, bn, 52, indx, 0); //mov (rsp, [indx]), al
 }
 
 void x86_64_enc_loc_str_16(uint8_t* bin, uint64_t* bn, uint32_t indx) {
-	x86_64_enc_mov_reg_addr_disp(bin, bn, 49, 52, indx + 2); //mov rcx, (rsp, [indx + 2])
-	x86_64_enc_shl_reg_imm(bin, bn, 49, 16); //shl rcx, 16
-	x86_64_enc_and_reg_imm(bin, bn, 48, 65535); //and rax, 65535
-	x86_64_enc_or_reg_reg(bin, bn, 48, 49); //or rax, rcx
-	x86_64_enc_mov_addr_disp_reg(bin, bn, 52, indx, 48); //mov (rsp, [indx]), rax
+	x86_64_enc_mov_addr_disp_reg(bin, bn, 52, indx, 16); //mov (rsp, [indx]), ax
 }
 
 void x86_64_enc_loc_str_32(uint8_t* bin, uint64_t* bn, uint32_t indx) {
-	x86_64_enc_mov_reg_addr_disp(bin, bn, 49, 52, indx + 4); //mov rcx, (rsp, [indx + 4])
-	x86_64_enc_shl_reg_imm(bin, bn, 49, 32); //shl rcx, 32
-	x86_64_enc_and_reg_imm(bin, bn, 48, 4294967295); //and rax, 4294967295
-	x86_64_enc_or_reg_reg(bin, bn, 48, 49); //or rax, rcx
-	x86_64_enc_mov_addr_disp_reg(bin, bn, 52, indx, 48); //mov (rsp, [indx]), rax
+	x86_64_enc_mov_addr_disp_reg(bin, bn, 52, indx, 32); //mov (rsp, [indx]), eax
 }
 
 void x86_64_enc_loc_str_64(uint8_t* bin, uint64_t* bn, uint32_t indx) {
@@ -705,34 +746,22 @@ void x86_64_enc_loc_str_64(uint8_t* bin, uint64_t* bn, uint32_t indx) {
 
 void x86_64_enc_loc_dref_8(uint8_t* bin, uint64_t* bn, uint32_t indx) {
 	x86_64_enc_mov_reg_addr_disp(bin, bn, 54, 52, indx); //mov rsi, (rsp, [indx])
-	x86_64_enc_mov_reg_addr_disp(bin, bn, 49, 54, 1); //mov rcx, (rsi, 1)
-	x86_64_enc_shl_reg_imm(bin, bn, 49, 8); //shl rcx, 8
-	x86_64_enc_and_reg_imm(bin, bn, 48, 255); //and rax, 255
-	x86_64_enc_or_reg_reg(bin, bn, 48, 49); //or rax, rcx
-	x86_64_enc_mov_addr_disp_reg(bin, bn, 54, 0, 48); //mov (rsi), rax
+	x86_64_enc_mov_addr_indx_disp_reg(bin, bn, 54, 55, 0, 0); //mov (rsi, (rdi)), al
 }
 
 void x86_64_enc_loc_dref_16(uint8_t* bin, uint64_t* bn, uint32_t indx) {
 	x86_64_enc_mov_reg_addr_disp(bin, bn, 54, 52, indx); //mov rsi, (rsp, [indx])
-	x86_64_enc_mov_reg_addr_disp(bin, bn, 49, 54, 2); //mov rcx, (rsi, 2)
-	x86_64_enc_shl_reg_imm(bin, bn, 49, 16); //shl rcx, 16
-	x86_64_enc_and_reg_imm(bin, bn, 48, 65535); //and rax, 65535
-	x86_64_enc_or_reg_reg(bin, bn, 48, 49); //or rax, rcx
-	x86_64_enc_mov_addr_disp_reg(bin, bn, 54, 0, 48); //mov (rsi), rax
+	x86_64_enc_mov_addr_indx_disp_reg(bin, bn, 54, 55, 0, 16); //mov (rsi, (rdi)), ax
 }
 
 void x86_64_enc_loc_dref_32(uint8_t* bin, uint64_t* bn, uint32_t indx) {
 	x86_64_enc_mov_reg_addr_disp(bin, bn, 54, 52, indx); //mov rsi, (rsp, [indx])
-	x86_64_enc_mov_reg_addr_disp(bin, bn, 49, 54, 1); //mov rcx, (rsi, 4)
-	x86_64_enc_shl_reg_imm(bin, bn, 49, 32); //shl rcx, 32
-	x86_64_enc_and_reg_imm(bin, bn, 48, 4294967295); //and rax, 4294967295
-	x86_64_enc_or_reg_reg(bin, bn, 48, 49); //or rax, rcx
-	x86_64_enc_mov_addr_disp_reg(bin, bn, 54, 0, 48); //mov (rsi), rax
+	x86_64_enc_mov_addr_indx_disp_reg(bin, bn, 54, 55, 0, 32); //mov (rsi, (rdi)), eax
 }
 
 void x86_64_enc_loc_dref_64(uint8_t* bin, uint64_t* bn, uint32_t indx) {
 	x86_64_enc_mov_reg_addr_disp(bin, bn, 54, 52, indx); //mov rsi, (rsp, [indx])
-	x86_64_enc_mov_addr_disp_reg(bin, bn, 54, 0, 48); //mov (rsi), rax
+	x86_64_enc_mov_addr_indx_disp_reg(bin, bn, 54, 55, 0, 48); //mov (rsi, (rdi)), rax
 }
 
 void x86_64_enc_glo_ref(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uint64_t* reln, uint8_t reg, uint8_t* str, uint8_t strn) {
@@ -803,8 +832,8 @@ void x86_64_enc_glo_load_8(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uin
 	reg = x86_64_inc_reg(reg);
 	
 	x86_64_enc_lea_reg_addr_disp(bin, bn, 54, 117, 0); //lea rsi, (rip, [rel])
-	x86_64_enc_mov_reg_addr_disp(bin, bn, reg | 48, 54, 0); //mov [reg], (rsi)
-	x86_64_enc_and_reg_imm(bin, bn, reg | 48, 255); //and [reg], 255
+	x86_64_enc_xor_reg_reg(bin, bn, reg | 48, reg | 48); //xor [reg], [reg]
+	x86_64_enc_mov_reg_addr_disp(bin, bn, reg, 54, 0); //mov [reg], (rsi)
 }
 
 void x86_64_enc_glo_load_16(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uint64_t* reln, uint8_t reg, uint8_t* str, uint8_t strn) {
@@ -818,8 +847,8 @@ void x86_64_enc_glo_load_16(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, ui
 	reg = x86_64_inc_reg(reg);
 	
 	x86_64_enc_lea_reg_addr_disp(bin, bn, 54, 117, 0); //lea rsi, (rip, [rel])
-	x86_64_enc_mov_reg_addr_disp(bin, bn, reg | 48, 54, 0); //mov [reg], (rsi)
-	x86_64_enc_and_reg_imm(bin, bn, reg | 48, 65535); //and [reg], 65535
+	x86_64_enc_xor_reg_reg(bin, bn, reg | 48, reg | 48); //xor [reg], [reg]
+	x86_64_enc_mov_reg_addr_disp(bin, bn, reg | 16, 54, 0); //mov [reg], (rsi)
 }
 
 void x86_64_enc_glo_load_32(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uint64_t* reln, uint8_t reg, uint8_t* str, uint8_t strn) {
@@ -833,8 +862,8 @@ void x86_64_enc_glo_load_32(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, ui
 	reg = x86_64_inc_reg(reg);
 	
 	x86_64_enc_lea_reg_addr_disp(bin, bn, 54, 117, 0); //lea rsi, (rip, [rel])
-	x86_64_enc_mov_reg_addr_disp(bin, bn, reg | 48, 54, 0); //mov [reg], (rsi)
-	x86_64_enc_and_reg_imm(bin, bn, reg | 48, 4294967295); //and [reg], 4294967295
+	x86_64_enc_xor_reg_reg(bin, bn, reg | 48, reg | 48); //xor [reg], [reg]
+	x86_64_enc_mov_reg_addr_disp(bin, bn, reg | 32, 54, 0); //mov [reg], (rsi)
 }
 
 void x86_64_enc_glo_load_64(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uint64_t* reln, uint8_t reg, uint8_t* str, uint8_t strn) {
@@ -860,10 +889,7 @@ void x86_64_enc_glo_str_8(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uint
 	*reln = *reln + 1;
 	
 	x86_64_enc_lea_reg_addr_disp(bin, bn, 54, 117, 0); //lea rsi, (rip, [rel])
-	x86_64_enc_mov_reg_addr_disp(bin, bn, 49, 54, 1); //mov rcx, (rsi, 1)
-	x86_64_enc_shl_reg_imm(bin, bn, 49, 8); //shl rcx, 8
-	x86_64_enc_or_reg_reg(bin, bn, 48, 49); //or rax, rcx
-	x86_64_enc_mov_addr_disp_reg(bin, bn, 54, 0, 48); //mov (rsi), rax
+	x86_64_enc_mov_addr_disp_reg(bin, bn, 54, 0, 0); //mov (rsi), al
 }
 
 void x86_64_enc_glo_str_16(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uint64_t* reln, uint8_t* str, uint8_t strn) {
@@ -875,10 +901,7 @@ void x86_64_enc_glo_str_16(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uin
 	*reln = *reln + 1;
 	
 	x86_64_enc_lea_reg_addr_disp(bin, bn, 54, 117, 0); //lea rsi, (rip, [rel])
-	x86_64_enc_mov_reg_addr_disp(bin, bn, 49, 54, 2); //mov rcx, (rsi, 2)
-	x86_64_enc_shl_reg_imm(bin, bn, 49, 16); //shl rcx, 16
-	x86_64_enc_or_reg_reg(bin, bn, 48, 49); //or rax, rcx
-	x86_64_enc_mov_addr_disp_reg(bin, bn, 54, 0, 48); //mov (rsi), rax
+	x86_64_enc_mov_addr_disp_reg(bin, bn, 54, 0, 16); //mov (rsi), ax
 }
 
 void x86_64_enc_glo_str_32(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uint64_t* reln, uint8_t* str, uint8_t strn) {
@@ -890,10 +913,7 @@ void x86_64_enc_glo_str_32(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uin
 	*reln = *reln + 1;
 	
 	x86_64_enc_lea_reg_addr_disp(bin, bn, 54, 117, 0); //lea rsi, (rip, [rel])
-	x86_64_enc_mov_reg_addr_disp(bin, bn, 49, 54, 4); //mov rcx, (rsi, 4)
-	x86_64_enc_shl_reg_imm(bin, bn, 49, 32); //shl rcx, 32
-	x86_64_enc_or_reg_reg(bin, bn, 48, 49); //or rax, rcx
-	x86_64_enc_mov_addr_disp_reg(bin, bn, 54, 0, 48); //mov (rsi), rax
+	x86_64_enc_mov_addr_disp_reg(bin, bn, 54, 0, 32); //mov (rsi), eax
 }
 
 void x86_64_enc_glo_str_64(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uint64_t* reln, uint8_t* str, uint8_t strn) {
@@ -918,10 +938,7 @@ void x86_64_enc_glo_dref_8(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uin
 	
 	x86_64_enc_lea_reg_addr_disp(bin, bn, 55, 117, 0); //lea rdi, (rip, [rel])
 	x86_64_enc_lea_reg_addr_disp(bin, bn, 54, 55, 0); //mov rsi, (rdi)
-	x86_64_enc_mov_reg_addr_disp(bin, bn, 49, 54, 1); //mov rcx, (rsi, 1)
-	x86_64_enc_shl_reg_imm(bin, bn, 49, 8); //shl rcx, 8
-	x86_64_enc_or_reg_reg(bin, bn, 48, 49); //or rax, rcx
-	x86_64_enc_mov_addr_disp_reg(bin, bn, 54, 0, 48); //mov (rsi), rax
+	x86_64_enc_mov_addr_disp_reg(bin, bn, 54, 0, 0); //mov (rsi), al
 }
 
 void x86_64_enc_glo_dref_16(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uint64_t* reln, uint8_t* str, uint8_t strn) {
@@ -934,10 +951,7 @@ void x86_64_enc_glo_dref_16(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, ui
 	
 	x86_64_enc_lea_reg_addr_disp(bin, bn, 55, 117, 0); //lea rdi, (rip, [rel])
 	x86_64_enc_lea_reg_addr_disp(bin, bn, 54, 55, 0); //mov rsi, (rdi)
-	x86_64_enc_mov_reg_addr_disp(bin, bn, 49, 54, 2); //mov rcx, (rsi, 2)
-	x86_64_enc_shl_reg_imm(bin, bn, 49, 16); //shl rcx, 16
-	x86_64_enc_or_reg_reg(bin, bn, 48, 49); //or rax, rcx
-	x86_64_enc_mov_addr_disp_reg(bin, bn, 54, 0, 48); //mov (rsi), rax
+	x86_64_enc_mov_addr_disp_reg(bin, bn, 54, 0, 16); //mov (rsi), ax
 }
 
 void x86_64_enc_glo_dref_32(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uint64_t* reln, uint8_t* str, uint8_t strn) {
@@ -950,10 +964,7 @@ void x86_64_enc_glo_dref_32(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, ui
 	
 	x86_64_enc_lea_reg_addr_disp(bin, bn, 55, 117, 0); //lea rdi, (rip, [rel])
 	x86_64_enc_lea_reg_addr_disp(bin, bn, 54, 55, 0); //mov rsi, (rdi)
-	x86_64_enc_mov_reg_addr_disp(bin, bn, 49, 54, 4); //mov rcx, (rsi, 4)
-	x86_64_enc_shl_reg_imm(bin, bn, 49, 32); //shl rcx, 32
-	x86_64_enc_or_reg_reg(bin, bn, 48, 49); //or rax, rcx
-	x86_64_enc_mov_addr_disp_reg(bin, bn, 54, 0, 48); //mov (rsi), rax
+	x86_64_enc_mov_addr_disp_reg(bin, bn, 54, 0, 32); //mov (rsi), eax
 }
 
 void x86_64_enc_glo_dref_64(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uint64_t* reln, uint8_t* str, uint8_t strn) {
@@ -1159,19 +1170,19 @@ void x86_64_enc_mult(uint8_t* bin, uint64_t* bn, uint8_t r0, uint8_t r1) {
 	r1 = x86_64_inc_reg(r1);
 	
 	if (r0 != 0) {
-		x86_64_enc_mov_reg_reg(bin, bn, 54, 48); //mov rsi, rax
+		x86_64_enc_mov_reg_reg(bin, bn, 53, 48); //mov rbp, rax
 		x86_64_enc_mov_reg_reg(bin, bn, 48, r0 | 48); //mov rax, [r0]
 	}
 	if (r1 != 2) {
-		x86_64_enc_mov_reg_reg(bin, bn, 55, 50); //mov rdi, rdx
+		x86_64_enc_mov_reg_reg(bin, bn, 54, 50); //mov rsi, rdx
 	}
 	x86_64_enc_mul_rax_reg(bin, bn, r1 | 48); //mul rax, [r1]
 	if (r0 != 0) {
 		x86_64_enc_mov_reg_reg(bin, bn, r0 | 48, 48); //mov [r0], rax
-		x86_64_enc_mov_reg_reg(bin, bn, 48, 54); //mov rax, rsi
+		x86_64_enc_mov_reg_reg(bin, bn, 48, 53); //mov rax, rbp
 	}
 	if (r1 != 2) {
-		x86_64_enc_mov_reg_reg(bin, bn, 50, 55); //mov rdx, rdi
+		x86_64_enc_mov_reg_reg(bin, bn, 50, 54); //mov rdx, rsi
 	}
 }
 
@@ -1189,10 +1200,10 @@ void x86_64_enc_div(uint8_t* bin, uint64_t* bn, uint8_t r0, uint8_t r1) {
 		x86_64_enc_div_rax_reg(bin, bn, 53); //div rax, rbp
 	}
 	else {
-		x86_64_enc_mov_reg_reg(bin, bn, 55, 50); //mov rdi, rdx
+		x86_64_enc_mov_reg_reg(bin, bn, 53, 50); //mov rbp, rdx
 		x86_64_enc_mov_reg_imm(bin, bn, 50, 0); //mov rdx, 0
 		x86_64_enc_div_rax_reg(bin, bn, r1 | 48); //div rax, [r1]
-		x86_64_enc_mov_reg_reg(bin, bn, 50, 55); //mov rdx, rdi
+		x86_64_enc_mov_reg_reg(bin, bn, 50, 53); //mov rdx, rbp
 	}
 	if (r0 != 0) {
 		x86_64_enc_mov_reg_reg(bin, bn, r0 | 48, 48); //mov [r0], rax
@@ -1205,16 +1216,16 @@ void x86_64_enc_mod(uint8_t* bin, uint64_t* bn, uint8_t r0, uint8_t r1) {
 	r1 = x86_64_inc_reg(r1);
 	
 	if (r0 != 0) {
-		x86_64_enc_mov_reg_reg(bin, bn, 54, 48); //mov rsi, rax
+		x86_64_enc_mov_reg_reg(bin, bn, 53, 48); //mov rbp, rax
 		x86_64_enc_mov_reg_reg(bin, bn, 48, r0 | 48); //mov rax, [r0]
 	}
 	if (r1 == 2) {
-		x86_64_enc_mov_reg_reg(bin, bn, 53, 50); //mov rbp, rdx
+		x86_64_enc_mov_reg_reg(bin, bn, 54, 50); //mov rsi, rdx
 		x86_64_enc_mov_reg_imm(bin, bn, 50, 0); //mov rdx, 0
-		x86_64_enc_div_rax_reg(bin, bn, 53); //div rax, rbp
+		x86_64_enc_div_rax_reg(bin, bn, 54); //div rax, rsi
 	}
 	else {
-		x86_64_enc_mov_reg_reg(bin, bn, 55, 50); //mov rdi, rdx
+		x86_64_enc_mov_reg_reg(bin, bn, 54, 50); //mov rsi, rdx
 		x86_64_enc_mov_reg_imm(bin, bn, 50, 0); //mov rdx, 0
 		x86_64_enc_div_rax_reg(bin, bn, r1 | 48); //div rax, [r1]
 	}
@@ -1222,9 +1233,9 @@ void x86_64_enc_mod(uint8_t* bin, uint64_t* bn, uint8_t r0, uint8_t r1) {
 		x86_64_enc_mov_reg_reg(bin, bn, r0 | 48, 50); //mov [r0], rdx
 	}
 	if (r0 != 0) {
-		x86_64_enc_mov_reg_reg(bin, bn, 48, 54); //mov rax, rsi
+		x86_64_enc_mov_reg_reg(bin, bn, 48, 53); //mov rax, rbp
 	}
 	if (r1 != 2) {
-		x86_64_enc_mov_reg_reg(bin, bn, 50, 55); //mov rdx, rdi);
+		x86_64_enc_mov_reg_reg(bin, bn, 50, 54); //mov rdx, rsi;
 	}
 }
