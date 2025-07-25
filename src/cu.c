@@ -564,8 +564,9 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			}
 			else if (op[prnths_n] == 23) {
 				cu_enc_load_dref_64(bin, bn, reg);
-				reg = reg - 1;
 				op[prnths_n] = 0;
+				prnths_n = prnths_n - 1;
+				adv_assign();
 			}
 			else if (op[prnths_n] == 24) {
 				reg = reg + 1;
