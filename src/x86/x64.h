@@ -44,14 +44,6 @@ void x86_64_enc_loc_str_32(uint8_t*, uint64_t*, uint32_t);
 
 void x86_64_enc_loc_str_64(uint8_t*, uint64_t*, uint32_t);
 
-void x86_64_enc_loc_dref_8(uint8_t*, uint64_t*, uint32_t);
-
-void x86_64_enc_loc_dref_16(uint8_t*, uint64_t*, uint32_t);
-
-void x86_64_enc_loc_dref_32(uint8_t*, uint64_t*, uint32_t);
-
-void x86_64_enc_loc_dref_64(uint8_t*, uint64_t*, uint32_t);
-
 void x86_64_enc_glo_ref(uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t, uint8_t*, uint8_t);
 
 void x86_64_enc_glo_dec_8(uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t*, uint8_t);
@@ -78,19 +70,29 @@ void x86_64_enc_glo_str_32(uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uin
 
 void x86_64_enc_glo_str_64(uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t*, uint8_t);
 
-void x86_64_enc_glo_dref_8(uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t*, uint8_t);
+void x86_64_enc_load_dref_8(uint8_t*, uint64_t*, uint8_t);
 
-void x86_64_enc_glo_dref_16(uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t*, uint8_t);
+void x86_64_enc_load_dref_16(uint8_t*, uint64_t*, uint8_t);
 
-void x86_64_enc_glo_dref_32(uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t*, uint8_t);
+void x86_64_enc_load_dref_32(uint8_t*, uint64_t*, uint8_t);
 
-void x86_64_enc_glo_dref_64(uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t*, uint8_t);
+void x86_64_enc_load_dref_64(uint8_t*, uint64_t*, uint8_t);
+
+void x86_64_enc_str_dref_8(uint8_t*, uint64_t*);
+
+void x86_64_enc_str_dref_16(uint8_t*, uint64_t*);
+
+void x86_64_enc_str_dref_32(uint8_t*, uint64_t*);
+
+void x86_64_enc_str_dref_64(uint8_t*, uint64_t*);
 
 void x86_64_enc_load_imm(uint8_t*, uint64_t*, uint8_t, uint64_t);
 
-void x86_64_enc_add(uint8_t*, uint64_t*, uint8_t, uint8_t);
+void x86_64_enc_clr_reg(uint8_t*, uint64_t*, uint8_t);
 
-void x86_64_enc_sub(uint8_t*, uint64_t*, uint8_t, uint8_t);
+void x86_64_enc_add(uint8_t*, uint64_t*, uint8_t);
+
+void x86_64_enc_sub(uint8_t*, uint64_t*, uint8_t);
 
 void x86_64_enc_inc(uint8_t*, uint64_t*, uint8_t);
 
@@ -98,37 +100,37 @@ void x86_64_enc_dec(uint8_t*, uint64_t*, uint8_t);
 
 void x86_64_enc_bit_not(uint8_t*, uint64_t*, uint8_t);
 
-void x86_64_enc_bit_and(uint8_t*, uint64_t*, uint8_t, uint8_t);
+void x86_64_enc_bit_and(uint8_t*, uint64_t*, uint8_t);
 
-void x86_64_enc_bit_or(uint8_t*, uint64_t*, uint8_t, uint8_t);
+void x86_64_enc_bit_or(uint8_t*, uint64_t*, uint8_t);
 
-void x86_64_enc_bit_xor(uint8_t*, uint64_t*, uint8_t, uint8_t);
+void x86_64_enc_bit_xor(uint8_t*, uint64_t*, uint8_t);
 
-void x86_64_enc_bit_shl(uint8_t*, uint64_t*, uint8_t, uint8_t);
+void x86_64_enc_bit_shl(uint8_t*, uint64_t*, uint8_t);
 
-void x86_64_enc_bit_shr(uint8_t*, uint64_t*, uint8_t, uint8_t);
+void x86_64_enc_bit_shr(uint8_t*, uint64_t*, uint8_t);
 
 void x86_64_enc_log_not(uint8_t*, uint64_t*, uint8_t);
 
-void x86_64_enc_log_and(uint8_t*, uint64_t*, uint8_t, uint8_t);
+void x86_64_enc_log_and(uint8_t*, uint64_t*, uint8_t);
 
-void x86_64_enc_log_or(uint8_t*, uint64_t*, uint8_t, uint8_t);
+void x86_64_enc_log_or(uint8_t*, uint64_t*, uint8_t);
 
-void x86_64_enc_log_eq(uint8_t*, uint64_t*, uint8_t, uint8_t);
+void x86_64_enc_log_eq(uint8_t*, uint64_t*, uint8_t);
 
-void x86_64_enc_log_neq(uint8_t*, uint64_t*, uint8_t, uint8_t);
+void x86_64_enc_log_neq(uint8_t*, uint64_t*, uint8_t);
 
-void x86_64_enc_log_lt(uint8_t*, uint64_t*, uint8_t, uint8_t);
+void x86_64_enc_log_lt(uint8_t*, uint64_t*, uint8_t);
 
-void x86_64_enc_log_leq(uint8_t*, uint64_t*, uint8_t, uint8_t);
+void x86_64_enc_log_leq(uint8_t*, uint64_t*, uint8_t);
 
-void x86_64_enc_log_gt(uint8_t*, uint64_t*, uint8_t, uint8_t);
+void x86_64_enc_log_gt(uint8_t*, uint64_t*, uint8_t);
 
-void x86_64_enc_log_geq(uint8_t*, uint64_t*, uint8_t, uint8_t);
+void x86_64_enc_log_geq(uint8_t*, uint64_t*, uint8_t);
 
-void x86_64_enc_mult(uint8_t*, uint64_t*, uint8_t, uint8_t);
+void x86_64_enc_mult(uint8_t*, uint64_t*, uint8_t);
 
-void x86_64_enc_div(uint8_t*, uint64_t*, uint8_t, uint8_t);
+void x86_64_enc_div(uint8_t*, uint64_t*, uint8_t);
 
-void x86_64_enc_mod(uint8_t*, uint64_t*, uint8_t, uint8_t);
+void x86_64_enc_mod(uint8_t*, uint64_t*, uint8_t);
 
