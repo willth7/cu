@@ -359,7 +359,9 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 	uint16_t stack_n = 1;
 	
 	uint16_t stack_dst = 0;	//variable assignment
-	uint8_t ref_dst = 0;	//dereference flag
+	uint16_t stack_ref = 0; //variable dereference
+	uint8_t dref_dst = 0;	//dereference destination flag
+	uint8_t dref_src = 0;	//dereference source flag
 	uint8_t ref_src = 0;	//reference flag
 	
 	cu_enc_ent(bin, bn, rel, reln); 
@@ -413,8 +415,15 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				ref_src;
 			}
 			else if (!stack[stack_src].scop) {
-				if (stack[stack_src].type == 4 || stack[stack_src].type == 8 || stack[stack_src].ref) {
+				if (stack[stack_src].ref) {
 					cu_enc_glo_load_64(bin, bn, rel, reln, reg, stack[stack_src].str, stack[stack_src].len);
+					if (mod == 0 && dref_dst && !stack_dst) {
+						stack_dst = stack_src;
+					}
+					else if (dref_src && !stack_ref) {
+						stack_ref = stack_src;
+						dref_src = 0;
+					}
 				}
 				else if (stack[stack_src].type == 1 || stack[stack_src].type == 5) {
 					cu_enc_glo_load_8(bin, bn, rel, reln, reg, stack[stack_src].str, stack[stack_src].len);
@@ -425,14 +434,25 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				else if (stack[stack_src].type == 3 || stack[stack_src].type == 7) {
 					cu_enc_glo_load_32(bin, bn, rel, reln, reg, stack[stack_src].str, stack[stack_src].len);
 				}
+				else if (stack[stack_src].type == 4 || stack[stack_src].type == 8) {
+					cu_enc_glo_load_64(bin, bn, rel, reln, reg, stack[stack_src].str, stack[stack_src].len);
+				}
+				
 			}
 			else if (ref_src) {
 				cu_enc_loc_ref(bin, bn, reg, stack[stack_src].indx);
 				ref_src = 0;
 			}
 			else {
-				if (stack[stack_src].type == 4 || stack[stack_src].type == 8 || stack[stack_src].ref) {
+				if (stack[stack_src].ref) {
 					cu_enc_loc_load_64(bin, bn, reg, stack[stack_src].indx);
+					if (mod == 0 && dref_dst && !stack_dst) {
+						stack_dst = stack_src;
+					}
+					else if (dref_src && !stack_ref) {
+						stack_ref = stack_src;
+						dref_src = 0;
+					}
 				}
 				else if (stack[stack_src].type == 1 || stack[stack_src].type == 5) {
 					cu_enc_loc_load_8(bin, bn, reg, stack[stack_src].indx);
@@ -442,6 +462,9 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				}
 				else if (stack[stack_src].type == 3 || stack[stack_src].type == 7) {
 					cu_enc_loc_load_32(bin, bn, reg, stack[stack_src].indx);
+				}
+				else if (stack[stack_src].type == 4 || stack[stack_src].type == 8) {
+					cu_enc_loc_load_64(bin, bn, reg, stack[stack_src].indx);
 				}
 			}
 		}
@@ -566,7 +589,21 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				op[prnths_n] = 0;
 			}
 			else if (op[prnths_n] == 23) {
-				cu_enc_load_dref_64(bin, bn, reg);
+				if (!stack_ref) {
+					cu_enc_load_dref_64(bin, bn, ref);
+				}
+				else if (stack[stack_ref].type == 1 || stack[stack_ref].type == 5) {
+					cu_enc_load_dref_8(bin, bn, reg);
+				}
+				else if (stack[stack_ref].type == 2 || stack[stack_ref].type == 6) {
+					cu_enc_load_dref_16(bin, bn, reg);
+				}
+				else if (stack[stack_ref].type == 3 || stack[stack_ref].type == 7) {
+					cu_enc_load_dref_32(bin, bn, reg);
+				}
+				else if (stack[stack_ref].type == 4 || stack[stack_ref].type == 8) {
+					cu_enc_load_dref_64(bin, bn, reg);
+				}
 				op[prnths_n] = 0;
 				prnths_n = prnths_n - 1;
 				adv_assign();
@@ -582,10 +619,24 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 		if (op[prnths_n]) {
 			adv_assign();
 		}
-		else if (ref_dst) {
-			cu_enc_str_dref_64(bin, bn);
+		else if (dref_dst) {
+			if (!stack_dst) {
+				cu_enc_str_dref_64(bin, bn);
+			}
+			else if (stack[stack_dst].type == 1 || stack[stack_dst].type == 5) {
+				cu_enc_str_dref_8(bin, bn);
+			}
+			else if (stack[stack_dst].type == 2 || stack[stack_dst].type == 6) {
+				cu_enc_str_dref_16(bin, bn);
+			}
+			else if (stack[stack_dst].type == 3 || stack[stack_dst].type == 7) {
+				cu_enc_str_dref_32(bin, bn);
+			}
+			else if (stack[stack_dst].type == 4 || stack[stack_dst].type == 8) {
+				cu_enc_str_dref_64(bin, bn);
+			}
 			reg = 0;
-			ref_dst = 0;
+			dref_dst = 0;
 		}
 		else if (!stack[stack_dst].scop) {
 			if (stack[stack_dst].type == 4 || stack[stack_dst].type == 8 || stack[stack_dst].ref) {
@@ -620,7 +671,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 	}
 	
 	void next_str() {
-		if (mod == 1 || ref_dst) {
+		if (mod == 1 || dref_dst) {
 			load_src(fnd_stack(lex));
 			adv_assign();
 		}
@@ -740,7 +791,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			if (li) {
 				next_str();
 			}
-			if (mod == 1 || ref_dst) { 
+			if (mod == 1 || dref_dst) { 
 				reg = reg + 1;
 				op[prnths_n] = 1;
 			}
@@ -766,7 +817,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			if (li) {
 				next_str();
 			}
-			if (mod == 1 || ref_dst) {
+			if (mod == 1 || dref_dst) {
 				reg = reg + 1;
 				op[prnths_n] = 2;
 			}
@@ -775,7 +826,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			if (li) {
 				next_str();
 			}
-			if (mod == 1 || ref_dst) {
+			if (mod == 1 || dref_dst) {
 				reg = reg + 1;
 				op[prnths_n] = 15;
 			}
@@ -785,7 +836,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			if (li) {
 				next_str();
 			}
-			if (mod == 1 || ref_dst) {
+			if (mod == 1 || dref_dst) {
 				prnths_n = prnths_n + 1;
 				op[prnths_n] = 11;
 			}	
@@ -794,7 +845,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			if (li) {
 				next_str();
 			}
-			if (mod == 1 || ref_dst) {
+			if (mod == 1 || dref_dst) {
 				prnths_n = prnths_n + 1;
 				op[prnths_n] = 5;
 			}
@@ -803,7 +854,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			if (li) {
 				next_str();
 			}
-			if (mod == 1 || ref_dst) {
+			if (mod == 1 || dref_dst) {
 				reg = reg + 1;
 				op[prnths_n] = 12;
 			}
@@ -816,7 +867,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			if (mod == 1 && fx[fi + 1] != ' ' && fx[fi + 1] != '(') { //reference
 				ref_src = 1;
 			}
-			else if (mod == 1 || ref_dst) { //bitwise and
+			else if (mod == 1 || dref_dst) { //bitwise and
 				reg = reg + 1;
 				op[prnths_n] = 6;
 			}
@@ -825,7 +876,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			if (li) {
 				next_str();
 			}
-			if (mod == 1 || ref_dst) {
+			if (mod == 1 || dref_dst) {
 				reg = reg + 1;
 				op[prnths_n] = 13;
 			}
@@ -835,7 +886,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			if (li) {
 				next_str();
 			}
-			if (mod == 1 || ref_dst) {
+			if (mod == 1 || dref_dst) {
 				reg = reg + 1;
 				op[prnths_n] = 7;
 			}
@@ -844,7 +895,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			if (li) {
 				next_str();
 			}
-			if (mod == 1 || ref_dst) {
+			if (mod == 1 || dref_dst) {
 				reg = reg + 1;
 				op[prnths_n] = 8;
 			}
@@ -853,7 +904,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			if (li) {
 				next_str();
 			}
-			if (mod == 1 || ref_dst) {
+			if (mod == 1 || dref_dst) {
 				reg = reg + 1;
 				op[prnths_n] = 9;
 			}
@@ -863,7 +914,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			if (li) {
 				next_str();
 			}
-			if (mod == 1 || ref_dst) {
+			if (mod == 1 || dref_dst) {
 				reg = reg + 1;
 				op[prnths_n] = 17;
 			}
@@ -873,7 +924,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			if (li) {
 				next_str();
 			}
-			if (mod == 1 || ref_dst) {
+			if (mod == 1 || dref_dst) {
 				reg = reg + 1;
 				op[prnths_n] = 16;
 			}
@@ -882,7 +933,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			if (li) {
 				next_str();
 			}
-			if (mod == 1 || ref_dst) {
+			if (mod == 1 || dref_dst) {
 				reg = reg + 1;
 				op[prnths_n] = 10;
 			}
@@ -892,7 +943,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			if (li) {
 				next_str();
 			}
-			if (mod == 1 || ref_dst) {
+			if (mod == 1 || dref_dst) {
 				reg = reg + 1;
 				op[prnths_n] = 19;
 			}
@@ -902,7 +953,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			if (li) {
 				next_str();
 			}
-			if (mod == 1 || ref_dst) {
+			if (mod == 1 || dref_dst) {
 				reg = reg + 1;
 				op[prnths_n] = 18;
 			}
@@ -911,7 +962,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			if (li) {
 				next_str();
 			}
-			if (mod == 1 || ref_dst) {
+			if (mod == 1 || dref_dst) {
 				reg = reg + 1;
 				op[prnths_n] = 14;
 			}
@@ -933,16 +984,17 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			if (key >= 1 && key <= 8) { //pointer declaration
 				ref = ref + 1;
 			}
-			else if (mod == 0 && fx[fi + 1] != ' ') { //dereference
+			else if (mod == 0 && fx[fi + 1] != ' ') { //dereference destination
 				prnths_n = prnths_n + 1;
 				op[prnths_n] = 24;
-				ref_dst = 1;
+				dref_dst = 1;
 			}
-			else if (mod == 1 && fx[fi + 1] != ' ') { //dereference
+			else if (mod == 1 && fx[fi + 1] != ' ') { //dereference source
 				prnths_n = prnths_n + 1;
 				op[prnths_n] = 23;
+				dref_src = 1;
 			}
-			else if (mod == 1 || ref_dst) { //multiplication
+			else if (mod == 1 || dref_dst) { //multiplication
 				reg = reg + 1;
 				op[prnths_n] = 20;
 			}
@@ -961,7 +1013,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			if (li) {
 				next_str();
 			}
-			if (mod == 1 || ref_dst) {
+			if (mod == 1 || dref_dst) {
 				reg = reg + 1;
 				op[prnths_n] = 21;
 			}
@@ -970,7 +1022,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			if (li) {
 				next_str();
 			}
-			if (mod == 1 || ref_dst) {
+			if (mod == 1 || dref_dst) {
 				reg = reg + 1;
 				op[prnths_n] = 22;
 			}
