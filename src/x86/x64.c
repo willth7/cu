@@ -556,13 +556,96 @@ void x86_64_enc_log_geq(uint8_t* bin, uint64_t* bn, uint8_t reg) {
 }
 
 void x86_64_enc_mult(uint8_t* bin, uint64_t* bn, uint8_t reg) {
+	uint8_t r0 = x86_64_inc_reg(reg - 1);
+	uint8_t r1 = x86_64_inc_reg(reg);
 	
+	if (r0 != 0) {
+		uint8_t r2 = x86_64_inc_reg(reg + 1);
+		x86_64_enc_mov_reg_reg(bin, bn, r2 | 48, 48); //mov [r2], rax
+		x86_64_enc_mov_reg_reg(bin, bn, 48, r0 | 48); //mov rax, [r0]
+		x86_64_enc_mul_rax_reg(bin, bn, r1 | 48); //mul rax, [r1]
+		x86_64_enc_mov_reg_reg(bin, bn, r0 | 48, 48); //mov [r0], rax
+		x86_64_enc_mov_reg_reg(bin, bn, 48, r2 | 48); //mov rax, [r2]
+	}
+	else {
+		x86_64_enc_mul_rax_reg(bin, bn, 49); //mul rax, rcx
+	}
 }
 
 void x86_64_enc_div(uint8_t* bin, uint64_t* bn, uint8_t reg) {
+	uint8_t r0 = x86_64_inc_reg(reg - 1);
+	uint8_t r1 = x86_64_inc_reg(reg);
 	
+	if (r0 == 0) {
+		x86_64_enc_xor_reg_reg(bin, bn, 50, 50); //xor rdx, rdx
+		x86_64_enc_div_rax_reg(bin, bn, 49); //div rax, rcx
+	}
+	else if (r0 == 1) {
+		x86_64_enc_mov_reg_reg(bin, bn, 51, 48); //mov rbx, rax
+		x86_64_enc_mov_reg_reg(bin, bn, 53, 50); //mov rbp, rdx
+		x86_64_enc_mov_reg_reg(bin, bn, 48, 49); //mov rax, rcx
+		x86_64_enc_xor_reg_reg(bin, bn, 50, 50); //xor rdx, rdx
+		x86_64_enc_div_rax_reg(bin, bn, 53); //div rax, rbp
+		x86_64_enc_mov_reg_reg(bin, bn, 49, 48); //mov rcx, rax
+		x86_64_enc_mov_reg_reg(bin, bn, 48, 51); //mov rax, rbx
+	}
+	else if (r0 == 2) {
+		x86_64_enc_mov_reg_reg(bin, bn, 53, 48); //mov rbp, rax
+		x86_64_enc_mov_reg_reg(bin, bn, 48, 50); //mov rax, rdx
+		x86_64_enc_xor_reg_reg(bin, bn, 50, 50); //xor rdx, rdx
+		x86_64_enc_div_rax_reg(bin, bn, 51); //div rax, rbx
+		x86_64_enc_mov_reg_reg(bin, bn, 50, 48); //mov rdx, rax
+		x86_64_enc_mov_reg_reg(bin, bn, 48, 53); //mov rax, rbp
+	}
+	else {
+		uint8_t r2 = x86_64_inc_reg(reg + 1);
+		uint8_t r3 = x86_64_inc_reg(reg + 2);
+		x86_64_enc_mov_reg_reg(bin, bn, r2 | 48, 48); //mov [r2], rax
+		x86_64_enc_mov_reg_reg(bin, bn, r3 | 48, 50); //mov [r3], rdx
+		x86_64_enc_mov_reg_reg(bin, bn, 48, r0 | 48); //mov rax, [r0]
+		x86_64_enc_xor_reg_reg(bin, bn, 50, 50); //xor rdx, rdx
+		x86_64_enc_div_rax_reg(bin, bn, r1 | 48); //div rax, [r1]
+		x86_64_enc_mov_reg_reg(bin, bn, r0 | 48, 48); //mov [r0], rax
+		x86_64_enc_mov_reg_reg(bin, bn, 48, r2 | 48); //mov rax, [r2]
+		x86_64_enc_mov_reg_reg(bin, bn, 50, r3 | 48); //mov rdx, [r3]
+	}
 }
 
 void x86_64_enc_mod(uint8_t* bin, uint64_t* bn, uint8_t reg) {
+	uint8_t r0 = x86_64_inc_reg(reg - 1);
+	uint8_t r1 = x86_64_inc_reg(reg);
 	
+	if (r0 == 0) {
+		x86_64_enc_xor_reg_reg(bin, bn, 50, 50); //xor rdx, rdx
+		x86_64_enc_div_rax_reg(bin, bn, 49); //div rax, rcx
+		x86_64_enc_mov_reg_reg(bin, bn, 48, 50); //mov rax, rdx
+	}
+	else if (r0 == 1) {
+		x86_64_enc_mov_reg_reg(bin, bn, 51, 48); //mov rbx, rax
+		x86_64_enc_mov_reg_reg(bin, bn, 53, 50); //mov rbp, rdx
+		x86_64_enc_mov_reg_reg(bin, bn, 48, 49); //mov rax, rcx
+		x86_64_enc_xor_reg_reg(bin, bn, 50, 50); //xor rdx, rdx
+		x86_64_enc_div_rax_reg(bin, bn, 53); //div rax, rbp
+		x86_64_enc_mov_reg_reg(bin, bn, 49, 50); //mov rcx, rdx
+		x86_64_enc_mov_reg_reg(bin, bn, 48, 51); //mov rax, rbx
+	}
+	else if (r0 == 2) {
+		x86_64_enc_mov_reg_reg(bin, bn, 53, 48); //mov rbp, rax
+		x86_64_enc_mov_reg_reg(bin, bn, 48, 50); //mov rax, rdx
+		x86_64_enc_xor_reg_reg(bin, bn, 50, 50); //xor rdx, rdx
+		x86_64_enc_div_rax_reg(bin, bn, 51); //div rax, rbx
+		x86_64_enc_mov_reg_reg(bin, bn, 48, 53); //mov rax, rbp
+	}
+	else {
+		uint8_t r2 = x86_64_inc_reg(reg + 1);
+		uint8_t r3 = x86_64_inc_reg(reg + 2);
+		x86_64_enc_mov_reg_reg(bin, bn, r2 | 48, 48); //mov [r2], rax
+		x86_64_enc_mov_reg_reg(bin, bn, r3 | 48, 50); //mov [r3], rdx
+		x86_64_enc_mov_reg_reg(bin, bn, 48, r0 | 48); //mov rax, [r0]
+		x86_64_enc_xor_reg_reg(bin, bn, 50, 50); //xor rdx, rdx
+		x86_64_enc_div_rax_reg(bin, bn, r1 | 48); //div rax, [r1]
+		x86_64_enc_mov_reg_reg(bin, bn, r0 | 48, 50); //mov [r0], rdx
+		x86_64_enc_mov_reg_reg(bin, bn, 48, r2 | 48); //mov rax, [r2]
+		x86_64_enc_mov_reg_reg(bin, bn, 50, r3 | 48); //mov rdx, [r3]
+	}
 }
