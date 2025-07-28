@@ -146,6 +146,86 @@ void x86_64_enc_loc_str_64(uint8_t* bin, uint64_t* bn, uint32_t indx) {
 	x86_64_enc_mov_addr_reg(bin, bn, 52, 0, 0, indx, 48); //mov (rsp, [indx]), rax
 }
 
+void x86_64_enc_loc_array_dec_8(uint8_t* bin, uint64_t* bn) {
+	x86_64_enc_add_reg_reg(bin, bn, 52, 48); //add rsp, rax
+}
+
+void x86_64_enc_loc_array_dec_16(uint8_t* bin, uint64_t* bn) {
+	x86_64_enc_shl_reg_imm(bin, bn, 48, 1); //shl rax, 1
+	x86_64_enc_add_reg_reg(bin, bn, 52, 48); //add rsp, rax
+}
+
+void x86_64_enc_loc_array_dec_32(uint8_t* bin, uint64_t* bn) {
+	x86_64_enc_shl_reg_imm(bin, bn, 48, 2); //shl rax, 2
+	x86_64_enc_add_reg_reg(bin, bn, 52, 48); //add rsp, rax
+}
+
+void x86_64_enc_loc_array_dec_64(uint8_t* bin, uint64_t* bn) {
+	x86_64_enc_shl_reg_imm(bin, bn, 48, 3); //shl rax, 3
+	x86_64_enc_add_reg_reg(bin, bn, 52, 48); //add rsp, rax
+}
+
+void x86_64_enc_loc_array_load_8(uint8_t* bin, uint64_t* bn, uint8_t reg, uint32_t indx) {
+	reg = x86_64_inc_reg(reg);
+	uint8_t rbp = x86_64_inc_reg(reg + 1);
+	uint8_t rip = x86_64_inc_reg(reg + 2);
+	
+	x86_64_enc_mov_reg_reg(bin, bn, rip | 48, reg | 48); //mov [rip], [reg]
+	x86_64_enc_xor_reg_reg(bin, bn, reg | 48, reg | 48); //xor [reg], [reg]
+	x86_64_enc_lea_reg_addr(bin, bn, rbp | 48, 52, 0, 0, indx); //lea [rbp], (rsp, [indx])
+	x86_64_enc_mov_reg_addr(bin, bn, reg, rbp | 48, rip | 48, 0, indx); //mov [reg], ([rbp], ([rip]))
+}
+
+void x86_64_enc_loc_array_load_16(uint8_t* bin, uint64_t* bn, uint8_t reg, uint32_t indx) {
+	reg = x86_64_inc_reg(reg);
+	uint8_t rbp = x86_64_inc_reg(reg + 1);
+	uint8_t rip = x86_64_inc_reg(reg + 2);
+	
+	x86_64_enc_mov_reg_reg(bin, bn, rip | 48, reg | 48); //mov [rip], [reg]
+	x86_64_enc_xor_reg_reg(bin, bn, reg | 48, reg | 48); //xor [reg], [reg]
+	x86_64_enc_lea_reg_addr(bin, bn, rbp | 48, 52, 0, 0, indx); //lea [rbp], (rsp, [indx])
+	x86_64_enc_mov_reg_addr(bin, bn, reg | 16, rbp | 48, rip | 48, 1, indx); //mov [reg], ([rbp], ([rip], 2))
+}
+
+void x86_64_enc_loc_array_load_32(uint8_t* bin, uint64_t* bn, uint8_t reg, uint32_t indx) {
+	reg = x86_64_inc_reg(reg);
+	uint8_t rbp = x86_64_inc_reg(reg + 1);
+	uint8_t rip = x86_64_inc_reg(reg + 2);
+	
+	x86_64_enc_mov_reg_reg(bin, bn, rip | 48, reg | 48); //mov [rip], [reg]
+	x86_64_enc_xor_reg_reg(bin, bn, reg | 48, reg | 48); //xor [reg], [reg]
+	x86_64_enc_lea_reg_addr(bin, bn, rbp | 48, 52, 0, 0, indx); //lea [rbp], (rsp, [indx])
+	x86_64_enc_mov_reg_addr(bin, bn, reg | 32, rbp | 48, rip | 48, 2, indx); //mov [reg], ([rbp], ([rip], 4))
+}
+
+void x86_64_enc_loc_array_load_64(uint8_t* bin, uint64_t* bn, uint8_t reg, uint32_t indx) {
+	reg = x86_64_inc_reg(reg);
+	uint8_t rbp = x86_64_inc_reg(reg + 1);
+	
+	x86_64_enc_lea_reg_addr(bin, bn, rbp | 48, 52, 0, 0, indx); //lea [rbp], (rsp, [indx])
+	x86_64_enc_mov_reg_addr(bin, bn, reg | 48, rbp | 48, reg | 48, 3, indx); //mov [reg], ([rbp], ([reg], 8))
+}
+
+void x86_64_enc_loc_array_str_8(uint8_t* bin, uint64_t* bn, uint32_t indx) {
+	x86_64_enc_lea_reg_addr(bin, bn, 50, 52, 0, 0, indx); //lea rdx, (rsp, indx)
+	x86_64_enc_mov_addr_reg(bin, bn, 50, 48, 0, 0, 1); //mov (rdx, (rax)), cl
+}
+
+void x86_64_enc_loc_array_str_16(uint8_t* bin, uint64_t* bn, uint32_t indx) {
+	x86_64_enc_lea_reg_addr(bin, bn, 50, 52, 0, 0, indx); //lea rdx, (rsp, indx)
+	x86_64_enc_mov_addr_reg(bin, bn, 50, 48, 1, 0, 17); //mov (rdx, (rax, 2)), cx
+}
+
+void x86_64_enc_loc_array_str_32(uint8_t* bin, uint64_t* bn, uint32_t indx) {
+	x86_64_enc_lea_reg_addr(bin, bn, 50, 52, 0, 0, indx); //lea rdx, (rsp, indx)
+	x86_64_enc_mov_addr_reg(bin, bn, 50, 48, 2, 0, 33); //mov (rdx, (rax, 4)), ecx
+}
+
+void x86_64_enc_loc_array_str_64(uint8_t* bin, uint64_t* bn, uint32_t indx) {
+	x86_64_enc_lea_reg_addr(bin, bn, 50, 52, 0, 0, indx); //lea rdx, (rsp, indx)
+	x86_64_enc_mov_addr_reg(bin, bn, 50, 48, 3, 0, 49); //mov (rdx, (rax, 8)), rcx
+}
+
 void x86_64_enc_glo_ref(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uint64_t* reln, uint8_t reg, uint8_t* str, uint8_t strn) {
 	rel[*reln].str = malloc(strn);
 	memcpy(rel[*reln].str, str, strn);
@@ -313,6 +393,175 @@ void x86_64_enc_glo_str_64(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uin
 	x86_64_enc_mov_addr_reg(bin, bn, 49, 0, 0, 0, 48); //mov (rcx), rax
 }
 
+void x86_64_enc_glo_array_dec_8(uint8_t* bin, uint64_t* bn, struct au_sym_s* sym, uint64_t* symn, uint8_t* str, uint8_t strn, uint32_t sz) {
+	sym[*symn].str = malloc(strn);
+	memcpy(sym[*symn].str, str, strn);
+	sym[*symn].len = strn;
+	sym[*symn].addr = *bn;
+	sym[*symn].typ = 0;
+	*symn = *symn + 1;
+	
+	for (uint32_t i = 0; i < sz; i++) {
+		x86_64_inst_byt(bin, bn, 0);
+	}
+}
+
+void x86_64_enc_glo_array_dec_16(uint8_t* bin, uint64_t* bn, struct au_sym_s* sym, uint64_t* symn, uint8_t* str, uint8_t strn, uint32_t sz) {
+	sym[*symn].str = malloc(strn);
+	memcpy(sym[*symn].str, str, strn);
+	sym[*symn].len = strn;
+	sym[*symn].addr = *bn;
+	sym[*symn].typ = 0;
+	*symn = *symn + 1;
+	
+	for (uint32_t i = 0; i < sz; i++) {
+		x86_64_inst_k16(bin, bn, 0);
+	}
+}
+
+void x86_64_enc_glo_array_dec_32(uint8_t* bin, uint64_t* bn, struct au_sym_s* sym, uint64_t* symn, uint8_t* str, uint8_t strn, uint32_t sz) {
+	sym[*symn].str = malloc(strn);
+	memcpy(sym[*symn].str, str, strn);
+	sym[*symn].len = strn;
+	sym[*symn].addr = *bn;
+	sym[*symn].typ = 0;
+	*symn = *symn + 1;
+	
+	for (uint32_t i = 0; i < sz; i++) {
+		x86_64_inst_k32(bin, bn, 0);
+	}
+}
+
+void x86_64_enc_glo_array_dec_64(uint8_t* bin, uint64_t* bn, struct au_sym_s* sym, uint64_t* symn, uint8_t* str, uint8_t strn, uint32_t sz) {
+	sym[*symn].str = malloc(strn);
+	memcpy(sym[*symn].str, str, strn);
+	sym[*symn].len = strn;
+	sym[*symn].addr = *bn;
+	sym[*symn].typ = 0;
+	*symn = *symn + 1;
+	
+	for (uint32_t i = 0; i < sz; i++) {
+		x86_64_inst_k64(bin, bn, 0);
+	}
+}
+
+void x86_64_enc_glo_array_load_8(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uint64_t* reln, uint8_t reg, uint8_t* str, uint8_t strn) {
+	rel[*reln].str = malloc(strn);
+	memcpy(rel[*reln].str, str, strn);
+	rel[*reln].len = strn;
+	rel[*reln].addr = *bn;
+	rel[*reln].typ = 4;
+	*reln = *reln + 1;
+	
+	reg = x86_64_inc_reg(reg);
+	uint8_t rbp = x86_64_inc_reg(reg + 1);
+	uint8_t rip = x86_64_inc_reg(reg + 2);
+	
+	x86_64_enc_lea_reg_addr(bin, bn, rbp | 48, 117, 0, 0, 0); //lea [rbp], (rip, [rel])
+	x86_64_enc_mov_reg_reg(bin, bn, rip | 48, reg | 48); //mov [rip], [reg]
+	x86_64_enc_xor_reg_reg(bin, bn, reg | 48, reg | 48); //xor [reg], [reg]
+	x86_64_enc_mov_reg_addr(bin, bn, reg, rbp | 48, rip | 48, 0, 0); //mov [reg], ([rbp], ([rip]))
+}
+
+void x86_64_enc_glo_array_load_16(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uint64_t* reln, uint8_t reg, uint8_t* str, uint8_t strn) {
+	rel[*reln].str = malloc(strn);
+	memcpy(rel[*reln].str, str, strn);
+	rel[*reln].len = strn;
+	rel[*reln].addr = *bn;
+	rel[*reln].typ = 4;
+	*reln = *reln + 1;
+	
+	reg = x86_64_inc_reg(reg);
+	uint8_t rbp = x86_64_inc_reg(reg + 1);
+	uint8_t rip = x86_64_inc_reg(reg + 2);
+	
+	x86_64_enc_lea_reg_addr(bin, bn, rbp | 48, 117, 0, 0, 0); //lea [rbp], (rip, [rel])
+	x86_64_enc_mov_reg_reg(bin, bn, rip | 48, reg | 48); //mov [rip], [reg]
+	x86_64_enc_xor_reg_reg(bin, bn, reg | 48, reg | 48); //xor [reg], [reg]
+	x86_64_enc_mov_reg_addr(bin, bn, reg | 16, rbp | 48, rip | 48, 1, 0); //mov [reg], ([rbp], ([rip], 2))
+}
+
+void x86_64_enc_glo_array_load_32(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uint64_t* reln, uint8_t reg, uint8_t* str, uint8_t strn) {
+	rel[*reln].str = malloc(strn);
+	memcpy(rel[*reln].str, str, strn);
+	rel[*reln].len = strn;
+	rel[*reln].addr = *bn;
+	rel[*reln].typ = 4;
+	*reln = *reln + 1;
+	
+	reg = x86_64_inc_reg(reg);
+	uint8_t rbp = x86_64_inc_reg(reg + 1);
+	uint8_t rip = x86_64_inc_reg(reg + 2);
+	
+	x86_64_enc_lea_reg_addr(bin, bn, rbp | 48, 117, 0, 0, 0); //lea [rbp], (rip, [rel])
+	x86_64_enc_mov_reg_reg(bin, bn, rip | 48, reg | 48); //mov [rip], [reg]
+	x86_64_enc_xor_reg_reg(bin, bn, reg | 48, reg | 48); //xor [reg], [reg]
+	x86_64_enc_mov_reg_addr(bin, bn, reg | 32, rbp | 48, rip | 48, 2, 0); //mov [reg], ([rbp], ([rip], 4))
+}
+
+void x86_64_enc_glo_array_load_64(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uint64_t* reln, uint8_t reg, uint8_t* str, uint8_t strn) {
+	rel[*reln].str = malloc(strn);
+	memcpy(rel[*reln].str, str, strn);
+	rel[*reln].len = strn;
+	rel[*reln].addr = *bn;
+	rel[*reln].typ = 4;
+	*reln = *reln + 1;
+	
+	reg = x86_64_inc_reg(reg);
+	uint8_t rbp = x86_64_inc_reg(reg + 1);
+	
+	x86_64_enc_lea_reg_addr(bin, bn, rbp | 48, 117, 0, 0, 0); //lea [rbp], (rip, [rel])
+	x86_64_enc_mov_reg_addr(bin, bn, reg | 48, rbp | 48, reg | 48, 3, 0); //mov [reg], ([rbp], ([reg], 8))
+}
+
+void x86_64_enc_glo_array_str_8(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uint64_t* reln, uint8_t* str, uint8_t strn) {
+	rel[*reln].str = malloc(strn);
+	memcpy(rel[*reln].str, str, strn);
+	rel[*reln].len = strn;
+	rel[*reln].addr = *bn;
+	rel[*reln].typ = 4;
+	*reln = *reln + 1;
+	
+	x86_64_enc_lea_reg_addr(bin, bn, 50, 117, 0, 0, 0); //lea rdx, (rip, [rel])
+	x86_64_enc_mov_addr_reg(bin, bn, 50, 48, 0, 0, 1); //mov (rdx, (rax)), cl
+}
+
+void x86_64_enc_glo_array_str_16(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uint64_t* reln, uint8_t* str, uint8_t strn) {
+	rel[*reln].str = malloc(strn);
+	memcpy(rel[*reln].str, str, strn);
+	rel[*reln].len = strn;
+	rel[*reln].addr = *bn;
+	rel[*reln].typ = 4;
+	*reln = *reln + 1;
+	
+	x86_64_enc_lea_reg_addr(bin, bn, 50, 117, 0, 0, 0); //lea rdx, (rip, [rel])
+	x86_64_enc_mov_addr_reg(bin, bn, 50, 48, 1, 0, 17); //mov (rdx, (rax, 2)), cx
+}
+
+void x86_64_enc_glo_array_str_32(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uint64_t* reln, uint8_t* str, uint8_t strn) {
+	rel[*reln].str = malloc(strn);
+	memcpy(rel[*reln].str, str, strn);
+	rel[*reln].len = strn;
+	rel[*reln].addr = *bn;
+	rel[*reln].typ = 4;
+	*reln = *reln + 1;
+	
+	x86_64_enc_lea_reg_addr(bin, bn, 50, 117, 0, 0, 0); //lea rdx, (rip, [rel])
+	x86_64_enc_mov_addr_reg(bin, bn, 50, 48, 2, 0, 33); //mov (rdx, (rax, 4)), ecx
+}
+
+void x86_64_enc_glo_array_str_64(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uint64_t* reln, uint8_t* str, uint8_t strn) {
+	rel[*reln].str = malloc(strn);
+	memcpy(rel[*reln].str, str, strn);
+	rel[*reln].len = strn;
+	rel[*reln].addr = *bn;
+	rel[*reln].typ = 4;
+	*reln = *reln + 1;
+	
+	x86_64_enc_lea_reg_addr(bin, bn, 50, 117, 0, 0, 0); //lea rdx, (rip, [rel])
+	x86_64_enc_mov_addr_reg(bin, bn, 50, 48, 3, 0, 49); //mov (rdx, (rax, 8)), rcx
+}
+
 void x86_64_enc_load_dref_8(uint8_t* bin, uint64_t* bn, uint8_t reg) {
 	reg = x86_64_inc_reg(reg);
 	uint8_t rbp = x86_64_inc_reg(reg + 1);
@@ -366,12 +615,6 @@ void x86_64_enc_load_imm(uint8_t* bin, uint64_t* bn, uint8_t reg, uint64_t k) {
 	reg = x86_64_inc_reg(reg);
 	
 	x86_64_enc_mov_reg_imm(bin, bn, reg | 48, k); //mov [reg], [imm]
-}
-
-void x86_64_enc_clr_reg(uint8_t* bin, uint64_t* bn, uint8_t reg) {
-	reg = x86_64_inc_reg(reg);
-	
-	x86_64_enc_xor_reg_reg(bin, bn, reg | 48, reg | 48); //xor [reg], [reg]
 }
 
 void x86_64_enc_add(uint8_t* bin, uint64_t* bn, uint8_t reg) {
