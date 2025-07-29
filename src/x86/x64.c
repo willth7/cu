@@ -34,7 +34,7 @@ struct au_sym_s {
 };
 
 uint8_t x86_64_inc_reg(uint8_t reg) {
-	if (reg >= 4) {
+	if ((reg & 15) >= 4) {
 		reg = reg + 1;
 	}
 	return reg;

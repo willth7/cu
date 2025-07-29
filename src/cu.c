@@ -26,16 +26,20 @@
 
 /* todo
  
- - string immediates
+ - register overflow
+ - (pointer)++
  - functions
+ 	- function parameters
+	- parameter functions
  
- - array declaration
+ - arrays
+	- array declaration
  	- single and multi dimensional
- - array loading
- - array storing
- 
+ 	- array loading
+ 	- array storing
  - structs
-
+ - string immediates
+ 
 */
 
 /* notes
@@ -465,7 +469,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 	// 1 - assignment
 	uint8_t key = 0;		//current keyword
 	uint8_t reg = 0;		//register
-	uint8_t op[12] = {};	//operation
+	uint8_t op[256] = {};	//operation
 	uint8_t ref = 0;		//reference level
 	
 	uint8_t prnths_n = 0;	//level inside of parentheses
@@ -1232,7 +1236,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				next_str();	
 			}
 			else if (para_dec) {
-				printf("[%s, %lu] error: expected parameter '%s'\n", path, ln);
+				printf("[%s, %lu] error: expected parameter\n", path, ln);
 				*e = -1;
 			}
 			lex[0] = 0;
@@ -1244,6 +1248,10 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			}
 			if (mod == 1) {
 				end_assign();
+			}
+			if (prnths_n) {
+				printf("[%s, %lu] error: expected parenthesis\n", path, ln);
+				*e = -1;
 			}
 			stack_dst = 0;
 		}
@@ -1267,7 +1275,13 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				func_n = func_n + 1;
 				para_dec = 0;
 			}
-			prnths_n = prnths_n - 1;
+			if (prnths_n == 0) {
+				printf("[%s, %lu] error: excess parenthesis\n", path, ln);
+				*e = -1;
+			}
+			else {
+				prnths_n = prnths_n - 1;
+			}
 			adv_assign();
 		}
 		else if ((fx[fi] == '[') && !c && !ch) { //next string (begin indexing)
