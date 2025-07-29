@@ -475,6 +475,12 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 	struct cu_data_s stack[65536];
 	uint16_t stack_n = 1;
 	
+	struct cu_data_s func[65536];
+	uint16_t func_n = 1;
+	
+	struct cu_data_s para[256];
+	uint16_t para_n = 1;
+	
 	uint16_t stack_dst = 0;	//variable assignment
 	uint16_t stack_ref = 0; //variable dereference
 	uint8_t dref_dst = 0;	//dereference destination flag
@@ -482,46 +488,49 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 	uint8_t ref_src = 0;	//reference flag
 	
 	uint8_t func_dec = 0;	//function declaration flag
+	uint8_t para_dec = 0;	//parameter declaration flag
 	uint8_t array_dec = 0;	//array declaration flag
 	
 	cu_enc_ent(bin, bn, rel, reln); 
 	cu_enc_exit(bin, bn);
 	
-	void inc_stack(uint8_t sz) {
-		for (uint16_t i = 1; i < stack_n; i++) {
-			stack[i].indx = stack[i].indx + sz;
+	void inc_data(struct cu_data_s* data, uint16_t data_n, uint8_t sz) {
+		for (uint16_t i = 1; i < data_n; i++) {
+			if (data[i].scop) {
+				data[i].indx = data[i].indx + sz;
+			}
 		}
 	}
 	
-	void dec_stack(uint8_t scop) {
-		for (uint16_t i = stack_n - 1; i > 0; i--) {
-			if (stack[i].scop != scop) {
+	void dec_data(struct cu_data_s* data, uint16_t* data_n, uint8_t scop) {
+		for (uint16_t i = *data_n - 1; i > 0; i--) {
+			if (data[i].scop != scop) {
 				break;
 			}
 			else {
-				for (uint16_t j = 0; j < stack_n; j++) {
-					if (stack[i].type == 1 || stack[i].type == 5) {
-						stack[j].indx = stack[j].indx - 1;
+				for (uint16_t j = 0; j < *data_n; j++) {
+					if (data[i].type == 1 || data[i].type == 5) {
+						data[j].indx = data[j].indx - 1;
 					}
-					else if (stack[i].type == 2 || stack[i].type == 6) {
-						stack[j].indx = stack[j].indx - 2;
+					else if (data[i].type == 2 || data[i].type == 6) {
+						data[j].indx = data[j].indx - 2;
 					}
-					else if (stack[i].type == 3 || stack[i].type == 7) {
-						stack[j].indx = stack[j].indx - 4;
+					else if (data[i].type == 3 || data[i].type == 7) {
+						data[j].indx = data[j].indx - 4;
 					}
-					else if (stack[i].type == 4 || stack[i].type == 8) {
-						stack[j].indx = stack[j].indx - 8;
+					else if (data[i].type == 4 || data[i].type == 8) {
+						data[j].indx = data[j].indx - 8;
 					}
 				}
-				free(stack[i].str);
-				stack_n = stack_n - 1;
+				free(data[i].str);
+				*data_n = *data_n - 1;
 			}
 		}
 	}
 	
-	uint16_t fnd_stack(uint8_t* str) {
-		for (uint16_t i = stack_n - 1; i > 0; i--) {
-			if (!strcmp(stack[i].str, str)) {
+	uint16_t find_data(struct cu_data_s* data, uint16_t data_n, uint8_t* str) {
+		for (uint16_t i = data_n - 1; i > 0; i--) {
+			if (!strcmp(data[i].str, str)) {
 				return i;
 			}
 		}
@@ -796,98 +805,125 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 	
 	void next_str() {
 		if (mod == 1 || dref_dst) {
-			load_src(fnd_stack(lex));
+			load_src(find_data(stack, stack_n, lex));
 			adv_assign();
 		}
-		else if (!key && !stack_dst) {
+		else if (!key && !stack_dst) { //variable assignment
 			key = cu_str_key(lex);
 			if (!key) {
-				stack_dst = fnd_stack(lex);
+				stack_dst = find_data(stack, stack_n, lex);
 			}
 			if (!key && !stack_dst) {
-				printf("[%s, %lu] error: undeclared variable  '%s'\n", path, ln, lex);
-				//*e = -1;
+				printf("[%s, %lu] error: undeclared variable '%s'\n", path, ln, lex);
+				*e = -1;
 			}
 		}
-		else if (key) {
-			if (key == 4 || key == 8 || ref) {
-				if (braces_n) {
-					cu_enc_loc_dec_64(bin, bn);
-				}
-				else {
-					cu_enc_glo_dec_64(bin, bn, sym, symn, lex, li);
-				}
-				
+		else if (key && para_dec) { //parameter declaration
+			if (find_data(para, para_n, lex)) {
+				printf("[%s, %lu] error: parameter '%s' has already been declared\n", path, ln, lex);
+				*e = -1;
+				ref = 0;
+				key = 0;
+			}
+			else {
+				para[para_n].str = malloc(li);
+				memcpy(para[para_n].str, lex, li);
+				para[para_n].len = li;
+				para[para_n].type = key;
+				para[para_n].dim_n = 0;
+				para[para_n].mem_n = 0;
+				para[para_n].func = 0;
+				para[para_n].indx = 0;
+				para[para_n].scop = 0;
+				para[para_n].ref = ref;
+				para_n = para_n + 1;
+				ref = 0;
+				key = 0;
+			}
+		}
+		else if (key && func_dec) { //function declaration
+			if (find_data(func, func_n, lex)) {
+				printf("[%s, %lu] error: function '%s' has already been declared\n", path, ln, lex);
+				*e = -1;
+				ref = 0;
+				key = 0;
+			}
+			else {
+				func[func_n].str = malloc(li);
+				memcpy(func[func_n].str, lex, li);
+				func[func_n].len = li;
+				func[func_n].type = key;
+				func[func_n].dim_n = 0;
+				func[func_n].mem_n = 0;
+				func[func_n].func = 1;
+				func[func_n].indx = 0;
+				func[func_n].scop = braces_n;
+				func[func_n].ref = ref;
+				ref = 0;
+				key = 0;
+				func_dec = 0;
+				para_dec = 1;
+			}
+		}
+		else if (key) { //variable declaration
+			if (find_data(stack, stack_n, lex)) {
+				printf("[%s, %lu] error: variable '%s' has already been declared\n", path, ln, lex);
+				*e = -1;
+				ref = 0;
+				key = 0;
+			}
+			else {
 				stack[stack_n].str = malloc(li);
 				memcpy(stack[stack_n].str, lex, li);
 				stack[stack_n].len = li;
 				stack[stack_n].type = key;
+				stack[stack_n].dim_n = 0;
+				stack[stack_n].mem_n = 0;
+				stack[stack_n].func = 0;
 				stack[stack_n].indx = 0;
 				stack[stack_n].scop = braces_n;
 				stack[stack_n].ref = ref;
-				inc_stack(8);
-				stack_dst = stack_n;
-				stack_n = stack_n + 1;
-			}
-			else if (key == 1 || key == 5) {
-				if (braces_n) {
-					cu_enc_loc_dec_8(bin, bn);
+				if (key == 4 || key == 8 || ref) {
+					if (braces_n) {
+						cu_enc_loc_dec_64(bin, bn);
+						inc_data(stack, stack_n, 8);
 				}
 				else {
-					cu_enc_glo_dec_8(bin, bn, sym, symn, lex, li);
+					cu_enc_glo_dec_64(bin, bn, sym, symn, lex, li);
+					}
 				}
-				
-				stack[stack_n].str = malloc(li);
-				memcpy(stack[stack_n].str, lex, li);
-				stack[stack_n].len = li;
-				stack[stack_n].type = key;
-				stack[stack_n].indx = 0;
-				stack[stack_n].scop = braces_n;
-				stack[stack_n].ref = 0;
-				inc_stack(1);
+				else if (key == 1 || key == 5) {
+					if (braces_n) {
+						cu_enc_loc_dec_8(bin, bn);
+						inc_data(stack, stack_n, 1);
+					}
+					else {
+						cu_enc_glo_dec_8(bin, bn, sym, symn, lex, li);
+					}
+				}
+				else if (key == 2 || key == 6) {
+					if (braces_n) {
+						cu_enc_loc_dec_16(bin, bn);
+						inc_data(stack, stack_n, 2);
+					}
+					else {
+						cu_enc_glo_dec_16(bin, bn, sym, symn, lex, li);
+					}
+				}
+				else if (key == 3 || key == 7) {
+					if (braces_n) {
+						cu_enc_loc_dec_32(bin, bn);
+						inc_data(stack, stack_n, 4);
+					}
+					else {
+						cu_enc_glo_dec_32(bin, bn, sym, symn, lex, li);
+					}
+				}
 				stack_dst = stack_n;
 				stack_n = stack_n + 1;
+				ref = 0;
+				key = 0;
 			}
-			else if (key == 2 || key == 6) {
-				if (braces_n) {
-					cu_enc_loc_dec_16(bin, bn);
-				}
-				else {
-					cu_enc_glo_dec_16(bin, bn, sym, symn, lex, li);
-				}
-				
-				stack[stack_n].str = malloc(li);
-				memcpy(stack[stack_n].str, lex, li);
-				stack[stack_n].len = li;
-				stack[stack_n].type = key;
-				stack[stack_n].indx = 0;
-				stack[stack_n].scop = braces_n;
-				stack[stack_n].ref = 0;
-				inc_stack(2);
-				stack_dst = stack_n;
-				stack_n = stack_n + 1;
-			}
-			else if (key == 3 || key == 7) {
-				if (braces_n) {
-					cu_enc_loc_dec_32(bin, bn);
-				}
-				else {
-					cu_enc_glo_dec_32(bin, bn, sym, symn, lex, li);
-				}
-				
-				stack[stack_n].str = malloc(li);
-				memcpy(stack[stack_n].str, lex, li);
-				stack[stack_n].len = li;
-				stack[stack_n].type = key;
-				stack[stack_n].indx = 0;
-				stack[stack_n].scop = braces_n;
-				stack[stack_n].ref = 0;
-				inc_stack(4);
-				stack_dst = stack_n;
-				stack_n = stack_n + 1;
-			}
-			ref = 0;
-			key = 0;
 		}
 		lex[0] = 0;
 		li = 0;
@@ -924,7 +960,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			lex[li + 1] = 0;
 			li++;
 		}
-		else if ((fx[fi] == '"') && !c) { //string
+		else if ((fx[fi] == '\"') && !c) { //string
 			
 		}
 		else if ((fx[fi] == '+') && (fx[fi + 1] == '+') && !c && !ch) { //increment
@@ -1192,6 +1228,13 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			}
 		}
 		else if ((fx[fi] == ',') && li && !c && !ch) { //next string (parameter)
+			if (para_dec && key) {
+				next_str();	
+			}
+			else if (para_dec) {
+				printf("[%s, %lu] error: expected parameter '%s'\n", path, ln);
+				*e = -1;
+			}
 			lex[0] = 0;
 			li = 0;
 		}
@@ -1216,6 +1259,13 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 		else if ((fx[fi] == ')') && !c && !ch) { 
 			if (li) {
 				next_str();
+			}
+			if (para_dec) {
+				func[func_n].mem = malloc(sizeof(struct cu_data_s) * (para_n - 1));
+				func[func_n].mem_n = para_n - 1;
+				memcpy(func[func_n].mem, para + sizeof(struct cu_data_s), sizeof(struct cu_data_s) * (para_n - 1));
+				func_n = func_n + 1;
+				para_dec = 0;
 			}
 			prnths_n = prnths_n - 1;
 			adv_assign();
@@ -1250,7 +1300,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				//error
 			}
 			else {
-				dec_stack(braces_n);
+				dec_data(stack, &stack_n, braces_n);
 			}
 			braces_n = braces_n - 1;
 		}
