@@ -699,6 +699,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			else if (op[prnths_n] == 24) {
 				reg = reg + 1;
 				op[prnths_n] = 0;
+				prnths_n = prnths_n - 1;
 			}
 		}
 	}
@@ -707,7 +708,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 		if (op[prnths_n]) {
 			adv_assign();
 		}
-		else if (dref_dst) {
+		if (dref_dst) {
 			if (!stack_dst) {
 				cu_enc_str_dref_64(bin, bn);
 			}
@@ -885,7 +886,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 	}
 	
 	for (uint64_t fi = 0; fi < fs.st_size; fi++) {
-		//printf("%c, %u, %u\n", fx[fi], mod, key);
+		//printf("%c, %u\n", fx[fi], prnths_n);
 		
 		if (((fx[fi] >= 97 && fx[fi] <= 122) || (fx[fi] >= 48 && fx[fi] <= 57)  || (fx[fi] >= 65 && fx[fi] <= 90) || fx[fi] == '_' || (fx[fi] == '-' && fx[fi + 1] != ' ' && fx[fi + 1] != '-' && fx[fi + 1] != '-')) && !c && !ch) { //string
 			lex[li] = fx[fi];
@@ -922,9 +923,17 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			if (li) {
 				next_str();
 			}
+			else if (!stack_dst && !dref_dst) {
+				printf("[%s, %lu] error: nothing named to be incremented\n", path, ln);
+				*e = -1;
+			}
 			if (mod == 0) {
 				op[prnths_n] = 3;
 				mod = 1;
+			}
+			else {
+				printf("[%s, %lu] error: cannot increment within assignment\n", path, ln);
+				*e = -1;
 			}
 			fi = fi + 1;
 		}
@@ -947,10 +956,17 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			if (li) {
 				next_str();
 			}
+			else {
+				printf("[%s, %lu] error: nothing named to be decremented\n", path, ln);
+				*e = -1;
+			}
 			if (mod == 0) {
-				//prnths_n = prnths_n + 1;
 				op[prnths_n] = 4;
 				mod = 1;
+			}
+			else {
+				printf("[%s, %lu] error: cannot decrement within assignment\n", path, ln);
+				*e = -1;
 			}
 			fi = fi + 1;
 		}
