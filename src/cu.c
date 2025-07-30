@@ -26,7 +26,6 @@
 
 /* todo
  
- - (pointer)++
  - functions
  	- function parameters
 	- parameter functions
@@ -130,6 +129,14 @@ void (*cu_enc_str_dref_16) (uint8_t*, uint64_t*);
 void (*cu_enc_str_dref_32) (uint8_t*, uint64_t*);
 
 void (*cu_enc_str_dref_64) (uint8_t*, uint64_t*);
+
+void (*cu_enc_load_dref_8_inc) (uint8_t*, uint64_t*);
+
+void (*cu_enc_load_dref_16_inc) (uint8_t*, uint64_t*);
+
+void (*cu_enc_load_dref_32_inc) (uint8_t*, uint64_t*);
+
+void (*cu_enc_load_dref_64_inc) (uint8_t*, uint64_t*);
 
 void (*cu_enc_load_imm) (uint8_t*, uint64_t*, uint8_t, uint64_t);
 
@@ -575,12 +582,50 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				op[prnths_n] = 0;
 			}
 			else if (op[prnths_n] == 3) {
-				load_src(stack_dst);
+				if (dref_dst) {
+					if (!stack_dst) {
+						cu_enc_load_dref_64_inc(bin, bn);
+					}
+					else if (stack[stack_dst].type == 1 || stack[stack_dst].type == 5) {
+						cu_enc_load_dref_8_inc(bin, bn);
+					}
+					else if (stack[stack_dst].type == 2 || stack[stack_dst].type == 6) {
+						cu_enc_load_dref_16_inc(bin, bn);
+					}
+					else if (stack[stack_dst].type == 3 || stack[stack_dst].type == 7) {
+						cu_enc_load_dref_32_inc(bin, bn);
+					}
+					else if (stack[stack_dst].type == 4 || stack[stack_dst].type == 8) {
+						cu_enc_load_dref_64_inc(bin, bn);
+					}
+				}
+				else{
+					load_src(stack_dst);
+				}
 				cu_enc_inc(bin, bn, reg);
 				op[prnths_n] = 0;
 			}
 			else if (op[prnths_n] == 4) {
-				load_src(stack_dst);
+				if (dref_dst) {
+					if (!stack_dst) {
+						cu_enc_load_dref_64_inc(bin, bn);
+					}
+					else if (stack[stack_dst].type == 1 || stack[stack_dst].type == 5) {
+						cu_enc_load_dref_8_inc(bin, bn);
+					}
+					else if (stack[stack_dst].type == 2 || stack[stack_dst].type == 6) {
+						cu_enc_load_dref_16_inc(bin, bn);
+					}
+					else if (stack[stack_dst].type == 3 || stack[stack_dst].type == 7) {
+						cu_enc_load_dref_32_inc(bin, bn);
+					}
+					else if (stack[stack_dst].type == 4 || stack[stack_dst].type == 8) {
+						cu_enc_load_dref_64_inc(bin, bn);
+					}
+				}
+				else{
+					load_src(stack_dst);
+				}
 				cu_enc_dec(bin, bn, reg);
 				op[prnths_n] = 0;
 			}
@@ -956,7 +1001,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			if (li) {
 				next_str();
 			}
-			else {
+			else if (!stack_dst && !dref_dst) {
 				printf("[%s, %lu] error: nothing named to be decremented\n", path, ln);
 				*e = -1;
 			}
@@ -1415,6 +1460,10 @@ int8_t main(int32_t argc, int8_t** argv) {
 		cu_enc_str_dref_16 = x86_64_enc_str_dref_16;
 		cu_enc_str_dref_32 = x86_64_enc_str_dref_32;
 		cu_enc_str_dref_64 = x86_64_enc_str_dref_64;
+		cu_enc_load_dref_8_inc = x86_64_enc_load_dref_8_inc;
+		cu_enc_load_dref_16_inc = x86_64_enc_load_dref_16_inc;
+		cu_enc_load_dref_32_inc = x86_64_enc_load_dref_32_inc;
+		cu_enc_load_dref_64_inc = x86_64_enc_load_dref_64_inc;
 		cu_enc_load_imm = x86_64_enc_load_imm;
 		cu_enc_add = x86_64_enc_add;
 		cu_enc_sub = x86_64_enc_sub;

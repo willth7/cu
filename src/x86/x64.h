@@ -86,6 +86,14 @@ void x86_64_enc_str_dref_32(uint8_t*, uint64_t*);
 
 void x86_64_enc_str_dref_64(uint8_t*, uint64_t*);
 
+void x86_64_enc_load_dref_8_inc(uint8_t*, uint64_t*);
+
+void x86_64_enc_load_dref_16_inc(uint8_t*, uint64_t*);
+
+void x86_64_enc_load_dref_32_inc(uint8_t*, uint64_t*);
+
+void x86_64_enc_load_dref_64_inc(uint8_t*, uint64_t*);
+
 void x86_64_enc_load_imm(uint8_t*, uint64_t*, uint8_t, uint64_t);
 
 void x86_64_enc_add(uint8_t*, uint64_t*, uint8_t);

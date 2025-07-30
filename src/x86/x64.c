@@ -446,6 +446,25 @@ void x86_64_enc_str_dref_64(uint8_t* bin, uint64_t* bn) {
 	x86_64_enc_mov_addr_reg(bin, bn, 48, 0, 0, 0, 49); //mov (rax), rcx
 }
 
+void x86_64_enc_load_dref_8_inc(uint8_t* bin, uint64_t* bn) {
+	x86_64_enc_xor_reg_reg(bin, bn, 49, 49); //xor rcx, rcx
+	x86_64_enc_mov_reg_addr(bin, bn, 1, 48, 0, 0, 0); //mov cl, (rax)
+}
+
+void x86_64_enc_load_dref_16_inc(uint8_t* bin, uint64_t* bn) {
+	x86_64_enc_xor_reg_reg(bin, bn, 49, 49); //xor rcx, rcx
+	x86_64_enc_mov_reg_addr(bin, bn, 17, 48, 0, 0, 0); //mov cc, (rax)
+}
+
+void x86_64_enc_load_dref_32_inc(uint8_t* bin, uint64_t* bn) {
+	x86_64_enc_xor_reg_reg(bin, bn, 49, 49); //xor rcx, rcx
+	x86_64_enc_mov_reg_addr(bin, bn, 33, 48, 0, 0, 0); //mov ecx, (rax)
+}
+
+void x86_64_enc_load_dref_64_inc(uint8_t* bin, uint64_t* bn) {
+	x86_64_enc_mov_reg_addr(bin, bn, 49, 48, 0, 0, 0); //mov rcx, (rax)
+}
+
 void x86_64_enc_load_imm(uint8_t* bin, uint64_t* bn, uint8_t reg, uint64_t k) {
 	reg = x86_64_inc_reg(reg);
 	
