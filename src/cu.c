@@ -26,7 +26,6 @@
 
 /* todo
  
- - register overflow
  - (pointer)++
  - functions
  	- function parameters
@@ -90,30 +89,6 @@ void (*cu_enc_loc_str_32) (uint8_t*, uint64_t*, uint32_t);
 
 void (*cu_enc_loc_str_64) (uint8_t*, uint64_t*, uint32_t);
 
-void (*cu_enc_loc_array_dec_8) (uint8_t*, uint64_t*);
-
-void (*cu_enc_loc_array_dec_16) (uint8_t*, uint64_t*);
-
-void (*cu_enc_loc_array_dec_32) (uint8_t*, uint64_t*);
-
-void (*cu_enc_loc_array_dec_64) (uint8_t*, uint64_t*);
-
-void (*cu_enc_loc_array_load_8) (uint8_t*, uint64_t*, uint8_t, uint32_t);
-
-void (*cu_enc_loc_array_load_16) (uint8_t*, uint64_t*, uint8_t, uint32_t);
-
-void (*cu_enc_loc_array_load_32) (uint8_t*, uint64_t*, uint8_t, uint32_t);
-
-void (*cu_enc_loc_array_load_64) (uint8_t*, uint64_t*, uint8_t, uint32_t);
-
-void (*cu_enc_loc_array_str_8) (uint8_t*, uint64_t*, uint32_t);
-
-void (*cu_enc_loc_array_str_16) (uint8_t*, uint64_t*, uint32_t);
-
-void (*cu_enc_loc_array_str_32) (uint8_t*, uint64_t*, uint32_t);
-
-void (*cu_enc_loc_array_str_64) (uint8_t*, uint64_t*, uint32_t);
-
 void (*cu_enc_glo_ref) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t, uint8_t*, uint8_t);
 
 void (*cu_enc_glo_dec_8) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t*, uint8_t);
@@ -139,30 +114,6 @@ void (*cu_enc_glo_str_16) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uin
 void (*cu_enc_glo_str_32) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t*, uint8_t);
 
 void (*cu_enc_glo_str_64) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t*, uint8_t);
-
-void (*cu_enc_glo_array_dec_8) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t*, uint8_t, uint32_t);
-
-void (*cu_enc_glo_array_dec_16) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t*, uint8_t, uint32_t);
-
-void (*cu_enc_glo_array_dec_32) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t*, uint8_t, uint32_t);
-
-void (*cu_enc_glo_array_dec_64) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t*, uint8_t, uint32_t);
-
-void (*cu_enc_glo_array_load_8) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t, uint8_t*, uint8_t);
-
-void (*cu_enc_glo_array_load_16) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t, uint8_t*, uint8_t);
-
-void (*cu_enc_glo_array_load_32) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t, uint8_t*, uint8_t);
-
-void (*cu_enc_glo_array_load_64) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t, uint8_t*, uint8_t);
-
-void (*cu_enc_glo_array_str_8) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t*, uint8_t);
-
-void (*cu_enc_glo_array_str_16) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t*, uint8_t);
-
-void (*cu_enc_glo_array_str_32) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t*, uint8_t);
-
-void (*cu_enc_glo_array_str_64) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t*, uint8_t);
 
 void (*cu_enc_load_dref_8) (uint8_t*, uint64_t*, uint8_t);
 
@@ -1427,18 +1378,6 @@ int8_t main(int32_t argc, int8_t** argv) {
 		cu_enc_loc_str_16 = x86_64_enc_loc_str_16;
 		cu_enc_loc_str_32 = x86_64_enc_loc_str_32;
 		cu_enc_loc_str_64 = x86_64_enc_loc_str_64;
-		cu_enc_loc_array_dec_8 = x86_64_enc_loc_array_dec_8;
-		cu_enc_loc_array_dec_16 = x86_64_enc_loc_array_dec_16;
-		cu_enc_loc_array_dec_32 = x86_64_enc_loc_array_dec_32;
-		cu_enc_loc_array_dec_64 = x86_64_enc_loc_array_dec_64;
-		cu_enc_loc_array_load_8 = x86_64_enc_loc_array_load_8;
-		cu_enc_loc_array_load_16 = x86_64_enc_loc_array_load_16;
-		cu_enc_loc_array_load_32 = x86_64_enc_loc_array_load_32;
-		cu_enc_loc_array_load_64 = x86_64_enc_loc_array_load_64;
-		cu_enc_loc_array_str_8 = x86_64_enc_loc_array_str_8;
-		cu_enc_loc_array_str_16 = x86_64_enc_loc_array_str_16;
-		cu_enc_loc_array_str_32 = x86_64_enc_loc_array_str_32;
-		cu_enc_loc_array_str_64 = x86_64_enc_loc_array_str_64;
 		cu_enc_glo_ref = x86_64_enc_glo_ref;
 		cu_enc_glo_dec_8 = x86_64_enc_glo_dec_8;
 		cu_enc_glo_dec_16 = x86_64_enc_glo_dec_16;
@@ -1452,18 +1391,6 @@ int8_t main(int32_t argc, int8_t** argv) {
 		cu_enc_glo_str_16 = x86_64_enc_glo_str_16;
 		cu_enc_glo_str_32 = x86_64_enc_glo_str_32;
 		cu_enc_glo_str_64 = x86_64_enc_glo_str_64;
-		cu_enc_glo_array_dec_8 = x86_64_enc_glo_array_dec_8;
-		cu_enc_glo_array_dec_16 = x86_64_enc_glo_array_dec_16;
-		cu_enc_glo_array_dec_32 = x86_64_enc_glo_array_dec_32;
-		cu_enc_glo_array_dec_64 = x86_64_enc_glo_array_dec_64;
-		cu_enc_glo_array_load_8 = x86_64_enc_glo_array_load_8;
-		cu_enc_glo_array_load_16 = x86_64_enc_glo_array_load_16;
-		cu_enc_glo_array_load_32 = x86_64_enc_glo_array_load_32;
-		cu_enc_glo_array_load_64 = x86_64_enc_glo_array_load_64;
-		cu_enc_glo_array_str_8 = x86_64_enc_glo_array_str_8;
-		cu_enc_glo_array_str_16 = x86_64_enc_glo_array_str_16;
-		cu_enc_glo_array_str_32 = x86_64_enc_glo_array_str_32;
-		cu_enc_glo_array_str_64 = x86_64_enc_glo_array_str_64;
 		cu_enc_load_dref_8 = x86_64_enc_load_dref_8;
 		cu_enc_load_dref_16 = x86_64_enc_load_dref_16;
 		cu_enc_load_dref_32 = x86_64_enc_load_dref_32;
