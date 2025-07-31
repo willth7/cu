@@ -36,7 +36,6 @@
  	- array loading
  	- array storing
  - structs
- - string immediates
  
 */
 
@@ -302,41 +301,96 @@ uint64_t cu_str_int_hex(int8_t* a, int8_t* e, int8_t* path, uint64_t ln) {
 	}
 }
 
-uint64_t cu_str_int_char(int8_t* a, int8_t* e, int8_t* path, uint64_t ln) {
-	if (a[0] == '\'' && a[1] >= 32 && a[1] <= 126 && a[1] != '\'' && a[1] != '\\' && a[2] == '\'' && a[3] == 0) {
-		return a[1];
+uint8_t cu_int_hex_char(uint64_t a) {
+	a = a & 15;
+	if (a == 0) {
+		return '0';
 	}
-	else if (a[0] == '\'' && a[1] == '\\' && a[2] == '0' && a[3] == '\'' && a[4] == 0) {
+	else if (a == 1) {
+		return '1';
+	}
+	else if (a == 2) {
+		return '2';
+	}
+	else if (a == 3) {
+		return '3';
+	}
+	else if (a == 4) {
+		return '4';
+	}
+	else if (a == 5) {
+		return '5';
+	}
+	else if (a == 6) {
+		return '6';
+	}
+	else if (a == 7) {
+		return '7';
+	}
+	else if (a == 8) {
+		return '8';
+	}
+	else if (a == 9) {
+		return '9';
+	}
+	else if (a == 10) {
+		return 'a';
+	}
+	else if (a == 11) {
+		return 'b';
+	}
+	else if (a == 12) {
+		return 'c';
+	}
+	else if (a == 13) {
+		return 'd';
+	}
+	else if (a == 14) {
+		return 'e';
+	}
+	else if (a == 15) {
+		return 'f';
+	}
+}
+
+uint64_t cu_str_int_char(int8_t* a, int8_t* e, int8_t* path, uint64_t ln) {
+	if (a[0] >= 32 && a[0] <= 126 && a[0] != '\'' && a[0] != '\\' && a[1] == 0) {
+		return a[0];
+	}
+	else if (a[0] == '\\' && a[1] == '0' && a[2] == 0) {
 		return 0;
 	}
-	else if (a[0] == '\'' && a[1] == '\\' && a[2] == 'a' && a[3] == '\'' && a[4] == 0) {
+	else if (a[0] == '\\' && a[1] == 'a' && a[2] == 0) {
 		return 7;
 	}
-	else if (a[0] == '\'' && a[1] == '\\' && a[2] == 'b' && a[3] == '\'' && a[4] == 0) {
+	else if (a[0] == '\\' && a[1] == 'b' && a[2] == 0) {
 		return 8;
 	}
-	else if (a[0] == '\'' && a[1] == '\\' && a[2] == 't' && a[3] == '\'' && a[4] == 0) {
+	else if (a[0] == '\\' && a[1] == 't' && a[2] == 0) {
 		return 9;
 	}
-	else if (a[0] == '\'' && a[1] == '\\' && a[2] == 'n' && a[3] == '\'' && a[4] == 0) {
+	else if (a[0] == '\\' && a[1] == 'n' && a[2] == 0) {
 		return 10;
 	}
-	else if (a[0] == '\'' && a[1] == '\\' && a[2] == 'v' && a[3] == '\'' && a[4] == 0) {
+	else if (a[0] == '\\' && a[1] == 'v' && a[2] == 0) {
 		return 11;
 	}
-	else if (a[0] == '\'' && a[1] == '\\' && a[2] == 'f' && a[3] == '\'' && a[4] == 0) {
+	else if (a[0] == '\\' && a[1] == 'f' && a[2] == 0) {
 		return 12;
 	}
-	else if (a[0] == '\'' && a[1] == '\\' && a[2] == 'r' && a[3] == '\'' && a[4] == 0) {
+	else if (a[0] == '\\' && a[1] == 'r' && a[2] == 0) {
 		return 13;
 	}
-	else if (a[0] == '\'' && a[1] == '\\' && a[2] == 'e' && a[3] == '\'' && a[4] == 0) {
+	else if (a[0] == '\\' && a[1] == 'e' && a[2] == 0) {
 		return 27;
 	}
-	else if (a[0] == '\'' && a[1] == '\\' && a[2] == '\'' && a[3] == '\'' && a[4] == 0) {
+	else if (a[0] == '\\' && a[1] == '\"' && a[2] == 0) {
 		return 39;
 	}
-	else if (a[0] == '\'' && a[1] == '\\' && a[2] == '\\' && a[3] == '\'' && a[4] == 0) {
+	else if (a[0] == '\\' && a[1] == '\'' && a[2] == 0) {
+		return 39;
+	}
+	else if (a[0] == '\\' && a[1] == '\\' && a[2] == 0) {
 		return 92;
 	}
 	else {
@@ -420,7 +474,10 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 	uint64_t ln = 1;
 	
 	uint8_t c = 0;					//comment flag
-	uint8_t ch = 0;					//character flag
+	uint8_t char_flag = 0;			//character flag
+	uint8_t str_flag = 0;			//string flag
+	uint16_t str_n = 0;				//number of string immediates
+	
 	
 	uint8_t mod = 0;				//current mode
 	// 0 - declaration
@@ -571,9 +628,72 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				}
 			}
 		}
-		else if (lex[0] == '\'') {
+		else if (char_flag) {
 			uint8_t k = cu_str_int_char(lex, e, path, ln);
 			cu_enc_load_imm(func_bin[braces_n], &(func_bn[braces_n]), reg, k);
+		}
+		else if (str_flag) {
+			func_sym[0][func_symn[0]].str = malloc(12);
+			memcpy(func_sym[0][func_symn[0]].str, "__str_$$_$$_", 12);
+			func_sym[0][func_symn[0]].str[6] = cu_int_hex_char(str_n >> 4);
+			func_sym[0][func_symn[0]].str[7] = cu_int_hex_char(str_n);
+			func_sym[0][func_symn[0]].str[9] = cu_int_hex_char(str_n >> 12);
+			func_sym[0][func_symn[0]].str[10] = cu_int_hex_char(str_n >> 8);
+			func_sym[0][func_symn[0]].len = 12;
+			func_sym[0][func_symn[0]].addr = func_bn[0];
+			func_sym[0][func_symn[0]].typ = 0;
+			cu_enc_glo_ref(func_bin[braces_n], &(func_bn[braces_n]), func_rel[braces_n], &(func_reln[braces_n]), reg, func_sym[0][func_symn[0]].str, func_sym[0][func_symn[0]].len);
+			func_symn[0] = func_symn[0] + 1;
+			for (uint8_t i = 0; i < li; i++) {
+				if (lex[i] == '\\') {
+					i = i + 1;
+					if (lex[i] == '0') {
+						func_bin[0][func_bn[0]] = 0;
+					}
+					else if (lex[i] == 'a') {
+						func_bin[0][func_bn[0]] = 7;
+					}
+					else if (lex[i] == 'b') {
+						func_bin[0][func_bn[0]] = 8;
+					}
+					else if (lex[i] == 't') {
+						func_bin[0][func_bn[0]] = 9;
+					}
+					else if (lex[i] == 'n') {
+						func_bin[0][func_bn[0]] = 10;
+					}
+					else if (lex[i] == 'v') {
+						func_bin[0][func_bn[0]] = 11;
+					}
+					else if (lex[i] == 'f') {
+						func_bin[0][func_bn[0]] = 12;
+					}
+					else if (lex[i] == 'r') {
+						func_bin[0][func_bn[0]] = 13;
+					}
+					else if (lex[i] == 'e') {
+						func_bin[0][func_bn[0]] = 27;
+					}
+					else if (lex[i] == '\"') {
+						func_bin[0][func_bn[0]] = 34;
+					}
+					else if (lex[i] == '\'') {
+						func_bin[0][func_bn[0]] = 39;
+					}
+					else if (lex[i] == '\\') {
+						func_bin[0][func_bn[0]] = 92;
+					}
+					else {
+						printf("[%s, %lu] error: illegal escape code '\\%c'\n", path, ln, lex[i + 1]);
+						*e = -1;
+					}
+				}
+				else {
+					func_bin[0][func_bn[0]] = lex[i];
+				}
+				func_bn[0] = func_bn[0] + 1;
+			}
+			str_n = str_n + 1;
 		}
 		else {
 			uint64_t k = cu_str_int_dec(lex, e, path, ln);
@@ -944,38 +1064,51 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 	for (uint64_t fi = 0; fi < fs.st_size; fi++) {
 		//printf("%c, %u\n", fx[fi], prnths_n);
 		
-		if (((fx[fi] >= 97 && fx[fi] <= 122) || (fx[fi] >= 48 && fx[fi] <= 57)  || (fx[fi] >= 65 && fx[fi] <= 90) || fx[fi] == '_' || (fx[fi] == '-' && fx[fi + 1] != ' ' && fx[fi + 1] != '-' && fx[fi + 1] != '-')) && !c && !ch) { //string
+		if (((fx[fi] >= 97 && fx[fi] <= 122) || (fx[fi] >= 48 && fx[fi] <= 57)  || (fx[fi] >= 65 && fx[fi] <= 90) || fx[fi] == '_' || (fx[fi] == '-' && fx[fi + 1] != ' ' && fx[fi + 1] != '-' && fx[fi + 1] != '-')) && !c && !char_flag && !str_flag) { //string
 			lex[li] = fx[fi];
 			lex[li + 1] = 0;
 			li++;
 		}
-		else if ((fx[fi] == '\'') && !c) { //character
-			if (ch) {
-				lex[li] = fx[fi];
-				lex[li + 1] = 0;
-				li++;
-				ch = 0;
+		else if ((fx[fi] == '\'') && !c && !str_flag && fx[fi - 1] != '\\') { //character
+			if (char_flag && li) {
 				next_str();
+				char_flag = 0;
+			}
+			else if (char_flag) {
+				printf("[%s, %lu] error: expected character\n", path, ln);
+				*e = -1;
+				char_flag = 0;
 			}
 			else {
 				if (li) {
 					next_str();
 				}
-				lex[li] = fx[fi];
-				lex[li + 1] = 0;
-				li++;
-				ch = 1;
+				char_flag = 1;
 			}
 		}
-		else if (ch) { //character
+		else if ((fx[fi] == '\"') && !c && !char_flag && fx[fi - 1] != '\\') { //string
+			if (str_flag && li) {
+				next_str();
+				str_flag = 0;
+			}
+			else if (str_flag) {
+				printf("[%s, %lu] error: expected string\n", path, ln);
+				*e = -1;
+				str_flag = 0;
+			}
+			else {
+				if (li) {
+					next_str();
+				}
+				str_flag = 1;
+			}
+		}
+		else if (char_flag || str_flag) {
 			lex[li] = fx[fi];
 			lex[li + 1] = 0;
 			li++;
 		}
-		else if ((fx[fi] == '\"') && !c) { //string
-			
-		}
-		else if ((fx[fi] == '+') && (fx[fi + 1] == '+') && !c && !ch) { //increment
+		else if ((fx[fi] == '+') && (fx[fi + 1] == '+') && !c && !char_flag && !str_flag) { //increment
 			if (li) {
 				next_str();
 			}
@@ -993,7 +1126,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			}
 			fi = fi + 1;
 		}
-		else if ((fx[fi] == '+') && !c && !ch) { //addition
+		else if ((fx[fi] == '+') && !c && !char_flag && !str_flag) { //addition
 			if (li) {
 				next_str();
 			}
@@ -1005,10 +1138,10 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				op[prnths_n] = 1;
 			}
 		}
-		else if ((fx[fi] == '-' && fx[fi + 1] == '>') && li && !c && !ch) { //struct access (pointer)
+		else if ((fx[fi] == '-' && fx[fi + 1] == '>') && li && !c && !char_flag && !str_flag) { //struct access (pointer)
 			fi = fi + 1;
 		}
-		else if ((fx[fi] == '-') && (fx[fi + 1] == '-') && !c && !ch) { //decrement
+		else if ((fx[fi] == '-') && (fx[fi + 1] == '-') && !c && !char_flag && !str_flag) { //decrement
 			if (li) {
 				next_str();
 			}
@@ -1026,7 +1159,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			}
 			fi = fi + 1;
 		}
-		else if ((fx[fi] == '-') && !c && !ch) { //subtraction
+		else if ((fx[fi] == '-') && !c && !char_flag && !str_flag) { //subtraction
 			if (li) {
 				next_str();
 			}
@@ -1035,7 +1168,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				op[prnths_n] = 2;
 			}
 		}
-		else if ((fx[fi] == '!') && (fx[fi + 1] == '=') && !c && !ch) { //logical not equal to
+		else if ((fx[fi] == '!') && (fx[fi + 1] == '=') && !c && !char_flag && !str_flag) { //logical not equal to
 			if (li) {
 				next_str();
 			}
@@ -1045,7 +1178,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			}
 			fi = fi + 1;
 		}
-		else if ((fx[fi] == '!') && !c && !ch) { //logical not
+		else if ((fx[fi] == '!') && !c && !char_flag && !str_flag) { //logical not
 			if (li) {
 				next_str();
 			}
@@ -1054,7 +1187,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				op[prnths_n] = 11;
 			}	
 		}
-		else if ((fx[fi] == '~') && !c && !ch) { //bitwise not
+		else if ((fx[fi] == '~') && !c && !char_flag && !str_flag) { //bitwise not
 			if (li) {
 				next_str();
 			}
@@ -1063,7 +1196,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				op[prnths_n] = 5;
 			}
 		}
-		else if ((fx[fi] == '&') && (fx[fi + 1] == '&') && !c && !ch) { //logical and
+		else if ((fx[fi] == '&') && (fx[fi + 1] == '&') && !c && !char_flag && !str_flag) { //logical and
 			if (li) {
 				next_str();
 			}
@@ -1073,7 +1206,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			}
 			fi = fi + 1;
 		}
-		else if ((fx[fi] == '&') && !c && !ch) { //reference or bitwise and
+		else if ((fx[fi] == '&') && !c && !char_flag && !str_flag) { //reference or bitwise and
 			if (li) {
 				next_str();
 			}
@@ -1085,7 +1218,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				op[prnths_n] = 6;
 			}
 		}
-		else if ((fx[fi] == '|') && (fx[fi + 1] == '|') && !c && !ch) { //logical or
+		else if ((fx[fi] == '|') && (fx[fi + 1] == '|') && !c && !char_flag && !str_flag) { //logical or
 			if (li) {
 				next_str();
 			}
@@ -1095,7 +1228,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			}
 			fi = fi + 1;
 		}
-		else if ((fx[fi] == '|') && !c && !ch) { //bitwise or
+		else if ((fx[fi] == '|') && !c && !char_flag && !str_flag) { //bitwise or
 			if (li) {
 				next_str();
 			}
@@ -1104,7 +1237,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				op[prnths_n] = 7;
 			}
 		}
-		else if ((fx[fi] == '^') && !c && !ch) { //bitwise exclusive or
+		else if ((fx[fi] == '^') && !c && !char_flag && !str_flag) { //bitwise exclusive or
 			if (li) {
 				next_str();
 			}
@@ -1113,7 +1246,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				op[prnths_n] = 8;
 			}
 		}
-		else if ((fx[fi] == '<') && (fx[fi + 1] == '<') && !c && !ch) { //bitwise left shift
+		else if ((fx[fi] == '<') && (fx[fi + 1] == '<') && !c && !char_flag && !str_flag) { //bitwise left shift
 			if (li) {
 				next_str();
 			}
@@ -1123,7 +1256,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			}
 			fi = fi + 1;
 		}
-		else if ((fx[fi] == '<') && (fx[fi + 1] == '=') && !c && !ch) { //logical less than or equal to
+		else if ((fx[fi] == '<') && (fx[fi + 1] == '=') && !c && !char_flag && !str_flag) { //logical less than or equal to
 			if (li) {
 				next_str();
 			}
@@ -1133,7 +1266,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			}
 			fi = fi + 1;
 		}
-		else if ((fx[fi] == '<') && !c && !ch) { //logical less than
+		else if ((fx[fi] == '<') && !c && !char_flag && !str_flag) { //logical less than
 			if (li) {
 				next_str();
 			}
@@ -1142,7 +1275,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				op[prnths_n] = 16;
 			}
 		}
-		else if ((fx[fi] == '>') && (fx[fi + 1] == '>') && !c && !ch) { //bitwise right shift
+		else if ((fx[fi] == '>') && (fx[fi + 1] == '>') && !c && !char_flag && !str_flag) { //bitwise right shift
 			if (li) {
 				next_str();
 			}
@@ -1152,7 +1285,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			}
 			fi = fi + 1;
 		}
-		else if ((fx[fi] == '>') && (fx[fi + 1] == '=') && !c && !ch) { //logical greater than or equal to
+		else if ((fx[fi] == '>') && (fx[fi + 1] == '=') && !c && !char_flag && !str_flag) { //logical greater than or equal to
 			if (li) {
 				next_str();
 			}
@@ -1162,7 +1295,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			}
 			fi = fi + 1;
 		}
-		else if ((fx[fi] == '>') && !c && !ch) { //logical greater than
+		else if ((fx[fi] == '>') && !c && !char_flag && !str_flag) { //logical greater than
 			if (li) {
 				next_str();
 			}
@@ -1171,7 +1304,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				op[prnths_n] = 18;
 			}
 		}
-		else if ((fx[fi] == '=') && (fx[fi + 1] == '=') && !c && !ch) { //logical equal to
+		else if ((fx[fi] == '=') && (fx[fi + 1] == '=') && !c && !char_flag && !str_flag) { //logical equal to
 			if (li) {
 				next_str();
 			}
@@ -1181,16 +1314,16 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			}
 			fi = fi + 1;
 		}
-		else if ((fx[fi] == '=') && !c && !ch) { //assignment
+		else if ((fx[fi] == '=') && !c && !char_flag && !str_flag) { //assignment
 			if (li) {
 				next_str();
 			}
 			mod = 1;
 		}
-		else if (fx[fi] == '*' && fx[fi + 1] == '/' && c == 2 && !ch) {
+		else if (fx[fi] == '*' && fx[fi + 1] == '/' && c == 2 && !char_flag && !str_flag) {
 			c = 0;
 		}
-		else if ((fx[fi] == '*') && !c && !ch) { //dereference or multiplication
+		else if ((fx[fi] == '*') && !c && !char_flag && !str_flag) { //dereference or multiplication
 			if (li) {
 				next_str();
 			}
@@ -1212,17 +1345,17 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				op[prnths_n] = 20;
 			}
 		}
-		else if ((fx[fi] == '/') && (fx[fi + 1] == '/') && !c && !ch) { //line comment
+		else if ((fx[fi] == '/') && (fx[fi + 1] == '/') && !c && !char_flag && !str_flag) { //line comment
 			c = 1;
 			lex[0] = 0;
 			li = 0;
 		}
-		else if ((fx[fi] == '/') && (fx[fi + 1] == '*') && !c && !ch) { //block comment
+		else if ((fx[fi] == '/') && (fx[fi + 1] == '*') && !c && !char_flag && !str_flag) { //block comment
 			c = 2;
 			lex[0] = 0;
 			li = 0;
 		}
-		else if ((fx[fi] == '/') && !c && !ch) { //division
+		else if ((fx[fi] == '/') && !c && !char_flag && !str_flag) { //division
 			if (li) {
 				next_str();
 			}
@@ -1231,7 +1364,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				op[prnths_n] = 21;
 			}
 		}
-		else if ((fx[fi] == '%') && !li && !c && !ch) { //modulo
+		else if ((fx[fi] == '%') && !li && !c && !char_flag && !str_flag) { //modulo
 			if (li) {
 				next_str();
 			}
@@ -1240,21 +1373,21 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				op[prnths_n] = 22;
 			}
 		}
-		else if (fx[fi] == '\n' && !ch) {
+		else if (fx[fi] == '\n' && !char_flag && !str_flag) {
 			if (c == 1) {
 				c = 0;
 			}
 			ln = ln + 1;
 		}
-		else if ((fx[fi] == '.') && li && !c && !ch) { //struct access
+		else if ((fx[fi] == '.') && li && !c && !char_flag && !str_flag) { //struct access
 			
 		}
-		else if ((fx[fi] == ' ') && li && !c && !ch) { //next string
+		else if ((fx[fi] == ' ') && li && !c && !char_flag && !str_flag) { //next string
 			if (li) {
 				next_str();
 			}
 		}
-		else if ((fx[fi] == ',') && li && !c && !ch) { //next string (parameter)
+		else if ((fx[fi] == ',') && li && !c && !char_flag && !str_flag) { //next string (parameter)
 			if (para_dec && key) {
 				next_str();	
 			}
@@ -1265,7 +1398,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			lex[0] = 0;
 			li = 0;
 		}
-		else if ((fx[fi] == ';') && !c && !ch) {
+		else if ((fx[fi] == ';') && !c && !char_flag && !str_flag) {
 			if (li) {
 				next_str();
 			}
@@ -1278,7 +1411,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			}
 			stack_dst = 0;
 		}
-		else if ((fx[fi] == '(') && !c && !ch) {
+		else if ((fx[fi] == '(') && !c && !char_flag && !str_flag) {
 			if (key) {
 				func_dec = 1;
 			}
@@ -1287,7 +1420,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			}
 			prnths_n = prnths_n + 1;
 		}
-		else if ((fx[fi] == ')') && !c && !ch) { 
+		else if ((fx[fi] == ')') && !c && !char_flag && !str_flag) { 
 			if (li) {
 				next_str();
 			}
@@ -1307,7 +1440,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			}
 			adv_assign();
 		}
-		else if ((fx[fi] == '[') && !c && !ch) { //next string (begin indexing)
+		else if ((fx[fi] == '[') && !c && !char_flag && !str_flag) { //next string (begin indexing)
 			if (key) {
 				array_dec = 1;
 			}
@@ -1316,14 +1449,14 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			}
 			brackt_n = brackt_n + 1;
 		}
-		else if ((fx[fi] == ']') && !c && !ch) { //next string (end indexing)
+		else if ((fx[fi] == ']') && !c && !char_flag && !str_flag) { //next string (end indexing)
 			if (li) {
 				next_str();
 			}
 			brackt_n = brackt_n - 1;
 			adv_assign();
 		}
-		else if ((fx[fi] == '{') && !c && !ch) { //next string (begin function content)
+		else if ((fx[fi] == '{') && !c && !char_flag && !str_flag) { //next string (begin function content)
 			if (li) {
 				next_str();
 			}
@@ -1339,7 +1472,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				stack_n = stack_n + 1;
 			}
 		}
-		else if ((fx[fi] == '}') && !c && !ch) { //next string (end function content)
+		else if ((fx[fi] == '}') && !c && !char_flag && !str_flag) { //next string (end function content)
 			if (li) {
 				next_str();
 			}
