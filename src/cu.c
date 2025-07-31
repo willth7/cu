@@ -499,9 +499,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 	
 	struct cu_data_s stack[65536];	//
 	uint16_t stack_n = 1;			//
-	
-	struct cu_data_s para[256];		//
-	uint16_t para_n = 1;			//
+	uint8_t para_n = 0;
 	
 	uint16_t stack_dst = 0;			//variable assignment
 	uint16_t stack_ref = 0; 		//variable dereference
@@ -547,34 +545,41 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				break;
 			}
 			else {
-				for (uint16_t j = 0; j < stack_n; j++) {
-					if (stack[i].type == 1 || stack[i].type == 5) {
-						stack[j].indx = stack[j].indx - 1;
-					}
-					else if (stack[i].type == 2 || stack[i].type == 6) {
-						stack[j].indx = stack[j].indx - 2;
-					}
-					else if (stack[i].type == 3 || stack[i].type == 7) {
-						stack[j].indx = stack[j].indx - 4;
-					}
-					else if (stack[i].type == 4 || stack[i].type == 8) {
-						stack[j].indx = stack[j].indx - 8;
-					}
+				if (stack[i].type == 4 || stack[i].type == 8 || stack[i].ref) {
+					dec_stack(8);
 				}
-				free(stack[i].str);
+				else if (stack[i].type == 1 || stack[i].type == 5) {
+					dec_stack(1);
+				}
+				else if (stack[i].type == 2 || stack[i].type == 6) {
+					dec_stack(2);
+				}
+				else if (stack[i].type == 3 || stack[i].type == 7) {
+					dec_stack(4);
+				}
+				//free(stack[i].str);
 				stack_n = stack_n - 1;
 			}
 		}
 	}
 	
-	uint16_t find_data(struct cu_data_s* data, uint16_t data_n, uint8_t* str) {
-		for (uint16_t i = data_n - 1; i > 0; i--) {
-			if (!strcmp(data[i].str, str)) {
+	uint16_t find_stack(uint8_t* str) {
+		for (uint16_t i = stack_n - 1; i > 0; i--) {
+			if (!strcmp(stack[i].str, str)) {
 				return i;
 			}
 		}
 		return 0;
 	}			
+	
+	uint16_t find_para(uint8_t* str) {
+		for (uint16_t i = stack_n - 1; i >= (stack_n - para_n); i--) {
+			if (!strcmp(stack[i].str, str)) {
+				return i;
+			}
+		}
+		return 0;
+	}
 	
 	void load_src(uint16_t stack_src) {
 		if (stack_src) {
@@ -946,13 +951,13 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 	
 	void next_str() {
 		if (mod == 1 || dref_dst) {
-			load_src(find_data(stack, stack_n, lex));
+			load_src(find_stack(lex));
 			adv_assign();
 		}
 		else if (!key && !stack_dst) { //variable assignment
 			key = cu_str_key(lex);
 			if (!key) {
-				stack_dst = find_data(stack, stack_n, lex);
+				stack_dst = find_stack(lex);
 			}
 			if (!key && !stack_dst) {
 				printf("[%s, %lu] error: '%s' has not been declared\n", path, ln, lex);
@@ -960,30 +965,43 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			}
 		}
 		else if (key && para_dec) { //parameter declaration
-			if (find_data(para, para_n, lex)) {
+			if (find_para(lex)) {
 				printf("[%s, %lu] error: parameter '%s' has already been declared\n", path, ln, lex);
 				*e = -1;
 				ref = 0;
 				key = 0;
 			}
 			else {
-				para[para_n].str = malloc(li);
-				memcpy(para[para_n].str, lex, li);
-				para[para_n].len = li;
-				para[para_n].type = key;
-				para[para_n].dim_n = 0;
-				para[para_n].mem_n = 0;
-				para[para_n].func = 0;
-				para[para_n].indx = 0;
-				para[para_n].scop = 0;
-				para[para_n].ref = ref;
+				stack[stack_n].str = malloc(li);
+				memcpy(stack[stack_n].str, lex, li);
+				stack[stack_n].len = li;
+				stack[stack_n].type = key;
+				stack[stack_n].dim_n = 0;
+				stack[stack_n].mem_n = 0;
+				stack[stack_n].func = 0;
+				stack[stack_n].indx = 0;
+				stack[stack_n].scop = braces_n + 1;
+				stack[stack_n].ref = ref;
+				if (key == 4 || key == 8 || ref) {
+					inc_stack(8);
+				}
+				else if (key == 1 || key == 5) {
+					inc_stack(1);
+				}
+				else if (key == 2 || key == 6) {
+					inc_stack(2);
+				}
+				else if (key == 3 || key == 7) {
+					inc_stack(4);
+				}
+				stack_n = stack_n + 1;
 				para_n = para_n + 1;
 				ref = 0;
 				key = 0;
 			}
 		}
 		else if (key && func_dec) { //function declaration
-			if (find_data(stack, stack_n, lex)) {
+			if (find_stack(lex)) {
 				printf("[%s, %lu] error: '%s' has already been declared\n", path, ln, lex);
 				*e = -1;
 				ref = 0;
@@ -1000,13 +1018,14 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				stack[stack_n].indx = 0;
 				stack[stack_n].scop = braces_n;
 				stack[stack_n].ref = ref;
+				stack_n = stack_n + 1;
 				ref = 0;
 				key = 0;
 				para_dec = 1;
 			}
 		}
 		else if (key) { //variable declaration
-			if (find_data(stack, stack_n, lex)) {
+			if (find_stack(lex)) {
 				printf("[%s, %lu] error: '%s' has already been declared\n", path, ln, lex);
 				*e = -1;
 				ref = 0;
@@ -1433,10 +1452,9 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				next_str();
 			}
 			if (para_dec) {
-				//stack[stack_n].mem = malloc(sizeof(struct cu_data_s) * (para_n - 1));
-				//stack[stack_n].mem_n = para_n - 1;
-				//memcpy(stack[stack_n].mem, para + sizeof(struct cu_data_s), sizeof(struct cu_data_s) * (para_n - 1));
-				//stack_n = stack_n + 1;
+				stack[(stack_n - 1) - para_n].mem = malloc(sizeof(struct cu_data_s) * (para_n));
+				stack[(stack_n - 1) - para_n].mem_n = para_n;
+				memcpy(stack[(stack_n - 1) - para_n].mem, stack + (sizeof(struct cu_data_s) * (stack_n - para_n)), sizeof(struct cu_data_s) * (para_n));
 				para_dec = 0;
 			}
 			if (prnths_n == 0) {
@@ -1471,13 +1489,13 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			braces_n = braces_n + 1;
 			if (func_dec) {
 				func_dec = 0;
-				func_sym[braces_n][func_symn[braces_n]].str = malloc(stack[stack_n].len);
-				memcpy(func_sym[braces_n][func_symn[braces_n]].str, stack[stack_n].str, stack[stack_n].len);
-				func_sym[braces_n][func_symn[braces_n]].len = stack[stack_n].len;
+				func_sym[braces_n][func_symn[braces_n]].str = malloc(stack[(stack_n - 1) - para_n].len);
+				memcpy(func_sym[braces_n][func_symn[braces_n]].str, stack[(stack_n - 1) - para_n].str, stack[(stack_n - 1) - para_n].len);
+				func_sym[braces_n][func_symn[braces_n]].len = stack[(stack_n - 1) - para_n].len;
 				func_sym[braces_n][func_symn[braces_n]].addr = func_bn[braces_n];
 				func_sym[braces_n][func_symn[braces_n]].typ = 0;
 				func_symn[braces_n] = func_symn[braces_n] + 1;
-				stack_n = stack_n + 1;
+				para_n = 0;
 			}
 		}
 		else if ((fx[fi] == '}') && !c && !char_flag && !str_flag) { //next string (end function content)
