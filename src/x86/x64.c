@@ -184,10 +184,10 @@ void x86_64_enc_loc_str_64(uint8_t* bin, uint64_t* bn, uint32_t indx) {
 	x86_64_enc_mov_addr_reg(bin, bn, 52, 0, 0, indx, 48); //mov (rsp, [indx]), rax
 }
 
-void x86_64_enc_glo_ref(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uint64_t* reln, void (*inc_stack) (uint8_t), uint8_t reg, uint8_t* str, uint8_t strn) {
-	rel[*reln].str = malloc(strn);
-	memcpy(rel[*reln].str, str, strn);
-	rel[*reln].len = strn;
+void x86_64_enc_glo_ref(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uint64_t* reln, void (*inc_stack) (uint8_t), uint8_t reg, uint8_t* str, uint8_t len) {
+	rel[*reln].str = malloc(len);
+	memcpy(rel[*reln].str, str, len);
+	rel[*reln].len = len;
 	rel[*reln].addr = *bn;
 	rel[*reln].typ = 4;
 	*reln = *reln + 1;
@@ -201,10 +201,10 @@ void x86_64_enc_glo_ref(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uint64
 	x86_64_enc_lea_reg_addr(bin, bn, reg | 48, 117, 0, 0, 0); //lea [reg], (rip, [rel])
 }
 
-void x86_64_enc_glo_dec_8(uint8_t* bin, uint64_t* bn, struct au_sym_s* sym, uint64_t* symn, uint8_t* str, uint8_t strn) {
-	sym[*symn].str = malloc(strn);
-	memcpy(sym[*symn].str, str, strn);
-	sym[*symn].len = strn;
+void x86_64_enc_glo_dec_8(uint8_t* bin, uint64_t* bn, struct au_sym_s* sym, uint64_t* symn, uint8_t* str, uint8_t len) {
+	sym[*symn].str = malloc(len);
+	memcpy(sym[*symn].str, str, len);
+	sym[*symn].len = len;
 	sym[*symn].addr = *bn;
 	sym[*symn].typ = 0;
 	*symn = *symn + 1;
@@ -212,10 +212,10 @@ void x86_64_enc_glo_dec_8(uint8_t* bin, uint64_t* bn, struct au_sym_s* sym, uint
 	x86_64_inst_byt(bin, bn, 0);
 }
 
-void x86_64_enc_glo_dec_16(uint8_t* bin, uint64_t* bn, struct au_sym_s* sym, uint64_t* symn, uint8_t* str, uint8_t strn) {
-	sym[*symn].str = malloc(strn);
-	memcpy(sym[*symn].str, str, strn);
-	sym[*symn].len = strn;
+void x86_64_enc_glo_dec_16(uint8_t* bin, uint64_t* bn, struct au_sym_s* sym, uint64_t* symn, uint8_t* str, uint8_t len) {
+	sym[*symn].str = malloc(len);
+	memcpy(sym[*symn].str, str, len);
+	sym[*symn].len = len;
 	sym[*symn].addr = *bn;
 	sym[*symn].typ = 0;
 	*symn = *symn + 1;
@@ -223,10 +223,10 @@ void x86_64_enc_glo_dec_16(uint8_t* bin, uint64_t* bn, struct au_sym_s* sym, uin
 	x86_64_inst_k16(bin, bn, 0);
 }
 
-void x86_64_enc_glo_dec_32(uint8_t* bin, uint64_t* bn, struct au_sym_s* sym, uint64_t* symn, uint8_t* str, uint8_t strn) {
-	sym[*symn].str = malloc(strn);
-	memcpy(sym[*symn].str, str, strn);
-	sym[*symn].len = strn;
+void x86_64_enc_glo_dec_32(uint8_t* bin, uint64_t* bn, struct au_sym_s* sym, uint64_t* symn, uint8_t* str, uint8_t len) {
+	sym[*symn].str = malloc(len);
+	memcpy(sym[*symn].str, str, len);
+	sym[*symn].len = len;
 	sym[*symn].addr = *bn;
 	sym[*symn].typ = 0;
 	*symn = *symn + 1;
@@ -234,10 +234,10 @@ void x86_64_enc_glo_dec_32(uint8_t* bin, uint64_t* bn, struct au_sym_s* sym, uin
 	x86_64_inst_k32(bin, bn, 0);
 }
 
-void x86_64_enc_glo_dec_64(uint8_t* bin, uint64_t* bn, struct au_sym_s* sym, uint64_t* symn, uint8_t* str, uint8_t strn) {
-	sym[*symn].str = malloc(strn);
-	memcpy(sym[*symn].str, str, strn);
-	sym[*symn].len = strn;
+void x86_64_enc_glo_dec_64(uint8_t* bin, uint64_t* bn, struct au_sym_s* sym, uint64_t* symn, uint8_t* str, uint8_t len) {
+	sym[*symn].str = malloc(len);
+	memcpy(sym[*symn].str, str, len);
+	sym[*symn].len = len;
 	sym[*symn].addr = *bn;
 	sym[*symn].typ = 3;
 	*symn = *symn + 1;
@@ -245,10 +245,10 @@ void x86_64_enc_glo_dec_64(uint8_t* bin, uint64_t* bn, struct au_sym_s* sym, uin
 	x86_64_inst_k64(bin, bn, 0);
 }
 
-void x86_64_enc_glo_load_8(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uint64_t* reln, void (*inc_stack) (uint8_t), uint8_t reg, uint8_t* str, uint8_t strn) {
-	rel[*reln].str = malloc(strn);
-	memcpy(rel[*reln].str, str, strn);
-	rel[*reln].len = strn;
+void x86_64_enc_glo_load_8(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uint64_t* reln, void (*inc_stack) (uint8_t), uint8_t reg, uint8_t* str, uint8_t len) {
+	rel[*reln].str = malloc(len);
+	memcpy(rel[*reln].str, str, len);
+	rel[*reln].len = len;
 	rel[*reln].addr = *bn;
 	rel[*reln].typ = 4;
 	*reln = *reln + 1;
@@ -271,10 +271,10 @@ void x86_64_enc_glo_load_8(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uin
 	}
 }
 
-void x86_64_enc_glo_load_16(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uint64_t* reln, void (*inc_stack) (uint8_t), uint8_t reg, uint8_t* str, uint8_t strn) {
-	rel[*reln].str = malloc(strn);
-	memcpy(rel[*reln].str, str, strn);
-	rel[*reln].len = strn;
+void x86_64_enc_glo_load_16(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uint64_t* reln, void (*inc_stack) (uint8_t), uint8_t reg, uint8_t* str, uint8_t len) {
+	rel[*reln].str = malloc(len);
+	memcpy(rel[*reln].str, str, len);
+	rel[*reln].len = len;
 	rel[*reln].addr = *bn;
 	rel[*reln].typ = 4;
 	*reln = *reln + 1;
@@ -297,10 +297,10 @@ void x86_64_enc_glo_load_16(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, ui
 	}
 }
 
-void x86_64_enc_glo_load_32(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uint64_t* reln, void (*inc_stack) (uint8_t), uint8_t reg, uint8_t* str, uint8_t strn) {
-	rel[*reln].str = malloc(strn);
-	memcpy(rel[*reln].str, str, strn);
-	rel[*reln].len = strn;
+void x86_64_enc_glo_load_32(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uint64_t* reln, void (*inc_stack) (uint8_t), uint8_t reg, uint8_t* str, uint8_t len) {
+	rel[*reln].str = malloc(len);
+	memcpy(rel[*reln].str, str, len);
+	rel[*reln].len = len;
 	rel[*reln].addr = *bn;
 	rel[*reln].typ = 4;
 	*reln = *reln + 1;
@@ -323,10 +323,10 @@ void x86_64_enc_glo_load_32(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, ui
 	}
 }
 
-void x86_64_enc_glo_load_64(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uint64_t* reln, void (*inc_stack) (uint8_t), uint8_t reg, uint8_t* str, uint8_t strn) {
-	rel[*reln].str = malloc(strn);
-	memcpy(rel[*reln].str, str, strn);
-	rel[*reln].len = strn;
+void x86_64_enc_glo_load_64(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uint64_t* reln, void (*inc_stack) (uint8_t), uint8_t reg, uint8_t* str, uint8_t len) {
+	rel[*reln].str = malloc(len);
+	memcpy(rel[*reln].str, str, len);
+	rel[*reln].len = len;
 	rel[*reln].addr = *bn;
 	rel[*reln].typ = 4;
 	*reln = *reln + 1;
@@ -341,10 +341,10 @@ void x86_64_enc_glo_load_64(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, ui
 	x86_64_enc_mov_reg_addr(bin, bn, reg | 48, reg | 48, 0, 0, 0); //mov [reg], ([reg])
 }
 
-void x86_64_enc_glo_str_8(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uint64_t* reln, uint8_t* str, uint8_t strn) {
-	rel[*reln].str = malloc(strn);
-	memcpy(rel[*reln].str, str, strn);
-	rel[*reln].len = strn;
+void x86_64_enc_glo_str_8(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uint64_t* reln, uint8_t* str, uint8_t len) {
+	rel[*reln].str = malloc(len);
+	memcpy(rel[*reln].str, str, len);
+	rel[*reln].len = len;
 	rel[*reln].addr = *bn;
 	rel[*reln].typ = 4;
 	*reln = *reln + 1;
@@ -353,10 +353,10 @@ void x86_64_enc_glo_str_8(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uint
 	x86_64_enc_mov_addr_reg(bin, bn, 49, 0, 0, 0, 0); //mov (rcx), al
 }
 
-void x86_64_enc_glo_str_16(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uint64_t* reln, uint8_t* str, uint8_t strn) {
-	rel[*reln].str = malloc(strn);
-	memcpy(rel[*reln].str, str, strn);
-	rel[*reln].len = strn;
+void x86_64_enc_glo_str_16(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uint64_t* reln, uint8_t* str, uint8_t len) {
+	rel[*reln].str = malloc(len);
+	memcpy(rel[*reln].str, str, len);
+	rel[*reln].len = len;
 	rel[*reln].addr = *bn;
 	rel[*reln].typ = 4;
 	*reln = *reln + 1;
@@ -365,10 +365,10 @@ void x86_64_enc_glo_str_16(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uin
 	x86_64_enc_mov_addr_reg(bin, bn, 49, 0, 0, 0, 16); //mov (rcx), ax
 }
 
-void x86_64_enc_glo_str_32(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uint64_t* reln, uint8_t* str, uint8_t strn) {
-	rel[*reln].str = malloc(strn);
-	memcpy(rel[*reln].str, str, strn);
-	rel[*reln].len = strn;
+void x86_64_enc_glo_str_32(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uint64_t* reln, uint8_t* str, uint8_t len) {
+	rel[*reln].str = malloc(len);
+	memcpy(rel[*reln].str, str, len);
+	rel[*reln].len = len;
 	rel[*reln].addr = *bn;
 	rel[*reln].typ = 4;
 	*reln = *reln + 1;
@@ -377,10 +377,10 @@ void x86_64_enc_glo_str_32(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uin
 	x86_64_enc_mov_addr_reg(bin, bn, 49, 0, 0, 0, 32); //mov (rcx), eax
 }
 
-void x86_64_enc_glo_str_64(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uint64_t* reln, uint8_t* str, uint8_t strn) {
-	rel[*reln].str = malloc(strn);
-	memcpy(rel[*reln].str, str, strn);
-	rel[*reln].len = strn;
+void x86_64_enc_glo_str_64(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uint64_t* reln, uint8_t* str, uint8_t len) {
+	rel[*reln].str = malloc(len);
+	memcpy(rel[*reln].str, str, len);
+	rel[*reln].len = len;
 	rel[*reln].addr = *bn;
 	rel[*reln].typ = 4;
 	*reln = *reln + 1;
@@ -483,6 +483,35 @@ void x86_64_enc_load_imm(uint8_t* bin, uint64_t* bn, void (*inc_stack) (uint8_t)
 		inc_stack(8);
 	}
 	x86_64_enc_mov_reg_imm(bin, bn, reg | 48, k); //mov [reg], [imm]
+}
+
+void x86_64_enc_func_pre_call(uint8_t* bin, uint64_t* bn, void (*inc_stack) (uint8_t), uint8_t reg, uint16_t sz) {
+	reg = x86_64_inc_reg(reg);
+	
+	for (uint8_t i = 0; i < (reg & 15); i++) {
+		x86_64_enc_push_reg(bin, bn, i | 48); //push [i]
+		inc_stack(8);
+	}
+	if (sz) {
+		x86_64_enc_add_reg_imm(bin, bn, 52, sz); //add rsp, [sz]
+	}
+}
+
+void x86_64_enc_func_call(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uint64_t* reln, void (*dec_stack) (uint8_t), uint8_t reg, uint8_t* str, uint8_t len) {
+	rel[*reln].str = malloc(len);
+	memcpy(rel[*reln].str, str, len);
+	rel[*reln].len = len;
+	rel[*reln].addr = *bn;
+	rel[*reln].typ = 3;
+	*reln = *reln + 1;
+	
+	reg = x86_64_inc_reg(reg);
+	
+	x86_64_enc_call(bin, bn, 0); //call [func]
+	for (uint8_t i = reg & 15; i > 0; i--) {
+		x86_64_enc_pop_reg(bin, bn, (i - 1) | 48); //pop [i - 1]
+		dec_stack(8);
+	}
 }
 
 void x86_64_enc_add(uint8_t* bin, uint64_t* bn, void (*dec_stack) (uint8_t), uint8_t reg) {

@@ -96,6 +96,10 @@ void x86_64_enc_load_dref_64_inc(uint8_t*, uint64_t*);
 
 void x86_64_enc_load_imm(uint8_t*, uint64_t*, void (*inc_stack) (uint8_t), uint8_t, uint64_t);
 
+void x86_64_enc_func_pre_call (uint8_t*, uint64_t*, void (*inc_stack) (uint8_t), uint8_t, uint16_t sz);
+
+void x86_64_enc_func_call (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, void (*inc_stack) (uint8_t), uint8_t, uint8_t*, uint8_t);
+
 void x86_64_enc_add(uint8_t*, uint64_t*, void (*dec_stack) (uint8_t), uint8_t);
 
 void x86_64_enc_sub(uint8_t*, uint64_t*, void (*dec_stack) (uint8_t), uint8_t);

@@ -27,8 +27,10 @@
 /* todo
  
  - functions
- 	- function parameters
-	- parameter functions
+ 	- parameter loading
+	- return values
+	- function pointers
+	- parameter function pointers`
  
  - arrays
 	- array declaration
@@ -138,6 +140,10 @@ void (*cu_enc_load_dref_32_inc) (uint8_t*, uint64_t*);
 void (*cu_enc_load_dref_64_inc) (uint8_t*, uint64_t*);
 
 void (*cu_enc_load_imm) (uint8_t*, uint64_t*, void (*inc_stack) (uint8_t), uint8_t, uint64_t);
+
+void (*cu_enc_func_pre_call) (uint8_t*, uint64_t*, void (*inc_stack) (uint8_t), uint8_t, uint16_t sz);
+
+void (*cu_enc_func_call) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, void (*inc_stack) (uint8_t), uint8_t, uint8_t*, uint8_t);
 
 void (*cu_enc_add) (uint8_t*, uint64_t*, void (*dec_stack) (uint8_t), uint8_t);
 
@@ -507,6 +513,8 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 	uint8_t dref_src = 0;			//dereference source flag
 	uint8_t ref_src = 0;			//reference flag
 	
+	uint8_t func_call = 0;			//function call flag
+	
 	uint8_t func_dec = 0;			//function declaration flag
 	uint8_t para_dec = 0;			//parameter declaration flag
 	uint8_t array_dec = 0;			//array declaration flag
@@ -571,6 +579,25 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 		}
 		return 0;
 	}			
+	
+	uint16_t count_para(struct cu_data_s func) {
+		uint16_t x = 0;
+		for (uint16_t i = 0; i < func.mem_n; i++) {
+			if (func.mem[i].type == 4 || func.mem[i].type == 8 || func.mem[i].ref) {
+				x = x + 8;
+			}
+			else if (func.mem[i].type == 1 || func.mem[i].type == 5) {
+				x = x + 1;
+			}
+			else if (func.mem[i].type == 2 || func.mem[i].type == 6) {
+				x = x + 2;
+			}
+			else if (func.mem[i].type == 3 || func.mem[i].type == 7) {
+				x = x + 4;
+			}
+		}
+		return x;
+	}
 	
 	uint16_t find_para(uint8_t* str) {
 		for (uint16_t i = stack_n - 1; i >= (stack_n - para_n); i--) {
@@ -953,6 +980,23 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 		if (mod == 1 || dref_dst) {
 			load_src(find_stack(lex));
 			adv_assign();
+		}
+		else if (func_call) { //function call
+			uint16_t func = find_stack(lex);
+			if (!func) {
+				func_call = 0;
+				printf("[%s, %lu] error: '%s' has not been declared\n", path, ln, stack[func].str);
+				*e = -1;
+			}
+			else if (!(stack[func].func)) {
+				func_call = 0;
+				printf("[%s, %lu] error: '%s' is not a function\n", path, ln, stack[func].str);
+				*e = -1;
+			}
+			else {
+				func_call = func;
+				cu_enc_func_pre_call(func_bin[braces_n], &(func_bn[braces_n]), inc_stack, reg, count_para(stack[func]));
+			}
 		}
 		else if (!key && !stack_dst) { //variable assignment
 			key = cu_str_key(lex);
@@ -1374,13 +1418,15 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 		}
 		else if ((fx[fi] == '/') && (fx[fi + 1] == '/') && !c && !char_flag && !str_flag) { //line comment
 			c = 1;
-			lex[0] = 0;
-			li = 0;
+			if (li) {
+				next_str();
+			}
 		}
 		else if ((fx[fi] == '/') && (fx[fi + 1] == '*') && !c && !char_flag && !str_flag) { //block comment
 			c = 2;
-			lex[0] = 0;
-			li = 0;
+			if (li) {
+				next_str();
+			}
 		}
 		else if ((fx[fi] == '/') && !c && !char_flag && !str_flag) { //division
 			if (li) {
@@ -1438,11 +1484,16 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			}
 			stack_dst = 0;
 		}
+		else if ((fx[fi] == '(') && (fx[fi + 1] == '*') && key && !c && !char_flag && !str_flag) { //function pointer
+			fi = fi + 1;
+		}
 		else if ((fx[fi] == '(') && !c && !char_flag && !str_flag) {
-			if (key) {
+			if (li && key) { //function declaration
 				func_dec = 1;
+				next_str();
 			}
-			if (li) {
+			else if (li) { //function call
+				func_call = 1;
 				next_str();
 			}
 			prnths_n = prnths_n + 1;
@@ -1454,8 +1505,16 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			if (para_dec) {
 				stack[(stack_n - 1) - para_n].mem = malloc(sizeof(struct cu_data_s) * (para_n));
 				stack[(stack_n - 1) - para_n].mem_n = para_n;
-				memcpy(stack[(stack_n - 1) - para_n].mem, stack + (sizeof(struct cu_data_s) * (stack_n - para_n)), sizeof(struct cu_data_s) * (para_n));
+				for (uint8_t i; i < para_n; i++) {
+					stack[(stack_n - 1) - para_n].mem[i].type = stack[(stack_n - para_n) + i].type;
+					stack[(stack_n - 1) - para_n].mem[i].indx = stack[(stack_n - para_n) + i].indx;
+					stack[(stack_n - 1) - para_n].mem[i].ref = stack[(stack_n - para_n) + i].ref;
+				}
 				para_dec = 0;
+			}
+			else if (func_call) {
+				cu_enc_func_call(func_bin[braces_n], &(func_bn[braces_n]), func_rel[braces_n], &(func_reln[braces_n]), dec_stack, reg, stack[func_call].str, stack[func_call].len);
+				func_call = 0;
 			}
 			if (prnths_n == 0) {
 				printf("[%s, %lu] error: excess parenthesis\n", path, ln);
@@ -1669,6 +1728,8 @@ int8_t main(int32_t argc, int8_t** argv) {
 		cu_enc_load_dref_32_inc = x86_64_enc_load_dref_32_inc;
 		cu_enc_load_dref_64_inc = x86_64_enc_load_dref_64_inc;
 		cu_enc_load_imm = x86_64_enc_load_imm;
+		cu_enc_func_pre_call = x86_64_enc_func_pre_call;
+		cu_enc_func_call = x86_64_enc_func_call;
 		cu_enc_add = x86_64_enc_add;
 		cu_enc_sub = x86_64_enc_sub;
 		cu_enc_inc = x86_64_enc_inc;
