@@ -1615,6 +1615,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				func_sym[braces_n][func_symn[braces_n]].typ = 0;
 				func_symn[braces_n] = func_symn[braces_n] + 1;
 				para_n = 0;
+				inc_stack(8); //size for return address
 			}
 		}
 		else if ((fx[fi] == '}') && !c && !char_flag && !str_flag) { //next string (end function content)
@@ -1626,6 +1627,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			}
 			else {
 				cu_enc_func_ret(func_bin[braces_n], &(func_bn[braces_n]));
+				dec_stack(8); //size of return address
 				rem_stack(braces_n);
 			}
 			braces_n = braces_n - 1;

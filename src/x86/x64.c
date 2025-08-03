@@ -110,19 +110,19 @@ void x86_64_enc_loc_ref(uint8_t* bin, uint64_t* bn, void (*inc_stack) (uint8_t),
 }
 
 void x86_64_enc_loc_dec_8(uint8_t* bin, uint64_t* bn) {
-	x86_64_enc_add_reg_imm(bin, bn, 52, 1); //add rsp, 1
+	x86_64_enc_sub_reg_imm(bin, bn, 52, 1); //sub rsp, 1
 }
 
 void x86_64_enc_loc_dec_16(uint8_t* bin, uint64_t* bn) {
-	x86_64_enc_add_reg_imm(bin, bn, 52, 2); //add rsp, 2
+	x86_64_enc_sub_reg_imm(bin, bn, 52, 2); //sub rsp, 2
 }
 
 void x86_64_enc_loc_dec_32(uint8_t* bin, uint64_t* bn) {
-	x86_64_enc_add_reg_imm(bin, bn, 52, 4); //add rsp, 4
+	x86_64_enc_sub_reg_imm(bin, bn, 52, 4); //sub rsp, 4
 }
 
 void x86_64_enc_loc_dec_64(uint8_t* bin, uint64_t* bn) {
-	x86_64_enc_add_reg_imm(bin, bn, 52, 8); //add rsp, 8
+	x86_64_enc_sub_reg_imm(bin, bn, 52, 8); //sub rsp, 8
 }
 
 void x86_64_enc_loc_load_8(uint8_t* bin, uint64_t* bn, void (*inc_stack) (uint8_t), uint8_t reg, uint32_t indx) {
@@ -493,7 +493,7 @@ void x86_64_enc_func_pre_call(uint8_t* bin, uint64_t* bn, void (*inc_stack) (uin
 		inc_stack(8);
 	}
 	if (sz) {
-		x86_64_enc_add_reg_imm(bin, bn, 52, sz); //add rsp, [sz]
+		x86_64_enc_sub_reg_imm(bin, bn, 52, sz); //sub rsp, [sz]
 		inc_stack(sz);
 	}
 }
@@ -510,7 +510,7 @@ void x86_64_enc_func_call(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uint
 	
 	x86_64_enc_call(bin, bn, 0); //call [func]
 	if (sz) {
-		x86_64_enc_sub_reg_imm(bin, bn, 52, sz); //sub rsp, [sz]
+		x86_64_enc_add_reg_imm(bin, bn, 52, sz); //add rsp, [sz]
 		dec_stack(sz);
 	}
 	for (uint8_t i = reg & 15; i > 0; i--) {
