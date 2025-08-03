@@ -494,10 +494,11 @@ void x86_64_enc_func_pre_call(uint8_t* bin, uint64_t* bn, void (*inc_stack) (uin
 	}
 	if (sz) {
 		x86_64_enc_add_reg_imm(bin, bn, 52, sz); //add rsp, [sz]
+		inc_stack(sz);
 	}
 }
 
-void x86_64_enc_func_call(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uint64_t* reln, void (*dec_stack) (uint8_t), uint8_t reg, uint8_t* str, uint8_t len) {
+void x86_64_enc_func_call(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uint64_t* reln, void (*dec_stack) (uint8_t), uint8_t reg, uint8_t* str, uint8_t len, uint16_t sz) {
 	rel[*reln].str = malloc(len);
 	memcpy(rel[*reln].str, str, len);
 	rel[*reln].len = len;
@@ -511,6 +512,9 @@ void x86_64_enc_func_call(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uint
 	for (uint8_t i = reg & 15; i > 0; i--) {
 		x86_64_enc_pop_reg(bin, bn, (i - 1) | 48); //pop [i - 1]
 		dec_stack(8);
+	}
+	if (sz) {
+		dec_stack(sz);
 	}
 }
 

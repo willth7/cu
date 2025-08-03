@@ -27,17 +27,19 @@
 /* todo
  
  - functions
- 	- parameter loading
+ 	- argument loading
 	- return values
 	- function pointers
-	- parameter function pointers`
  
  - arrays
 	- array declaration
  	- single and multi dimensional
  	- array loading
  	- array storing
+ 
  - structs
+ 
+ - casting
  
 */
 
@@ -141,9 +143,9 @@ void (*cu_enc_load_dref_64_inc) (uint8_t*, uint64_t*);
 
 void (*cu_enc_load_imm) (uint8_t*, uint64_t*, void (*inc_stack) (uint8_t), uint8_t, uint64_t);
 
-void (*cu_enc_func_pre_call) (uint8_t*, uint64_t*, void (*inc_stack) (uint8_t), uint8_t, uint16_t sz);
+void (*cu_enc_func_pre_call) (uint8_t*, uint64_t*, void (*inc_stack) (uint8_t), uint8_t, uint16_t);
 
-void (*cu_enc_func_call) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, void (*inc_stack) (uint8_t), uint8_t, uint8_t*, uint8_t);
+void (*cu_enc_func_call) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, void (*inc_stack) (uint8_t), uint8_t, uint8_t*, uint8_t, uint16_t);
 
 void (*cu_enc_add) (uint8_t*, uint64_t*, void (*dec_stack) (uint8_t), uint8_t);
 
@@ -489,7 +491,6 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 	// 0 - declaration
 	// 1 - assignment
 	uint8_t key = 0;				//current keyword
-	uint8_t reg = 0;				//register
 	uint8_t op[256] = {};			//operation
 	uint8_t ref = 0;				//reference level
 	
@@ -505,7 +506,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 	
 	struct cu_data_s stack[65536];	//
 	uint16_t stack_n = 1;			//
-	uint8_t para_n = 0;
+	uint8_t para_n = 0;				//number of parameters
 	
 	uint16_t stack_dst = 0;			//variable assignment
 	uint16_t stack_ref = 0; 		//variable dereference
@@ -513,7 +514,10 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 	uint8_t dref_src = 0;			//dereference source flag
 	uint8_t ref_src = 0;			//reference flag
 	
-	uint8_t func_call = 0;			//function call flag
+	uint8_t func_call[256] = {};	//function call flag
+	uint8_t arg_n[256] = {};		//number of arguments
+	uint8_t reg[256] = {};			//register
+	uint8_t call_n = 0;				//number of calls
 	
 	uint8_t func_dec = 0;			//function declaration flag
 	uint8_t para_dec = 0;			//parameter declaration flag
@@ -611,12 +615,12 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 	void load_src(uint16_t stack_src) {
 		if (stack_src) {
 			if (!stack[stack_src].scop && ref_src) {
-				cu_enc_glo_ref(func_bin[braces_n], &(func_bn[braces_n]), func_rel[braces_n], &(func_reln[braces_n]), inc_stack, reg, stack[stack_src].str, stack[stack_src].len);
+				cu_enc_glo_ref(func_bin[braces_n], &(func_bn[braces_n]), func_rel[braces_n], &(func_reln[braces_n]), inc_stack, reg[call_n], stack[stack_src].str, stack[stack_src].len);
 				ref_src;
 			}
 			else if (!stack[stack_src].scop) {
 				if (stack[stack_src].ref) {
-					cu_enc_glo_load_64(func_bin[braces_n], &(func_bn[braces_n]), func_rel[braces_n], &(func_reln[braces_n]), inc_stack, reg, stack[stack_src].str, stack[stack_src].len);
+					cu_enc_glo_load_64(func_bin[braces_n], &(func_bn[braces_n]), func_rel[braces_n], &(func_reln[braces_n]), inc_stack, reg[call_n], stack[stack_src].str, stack[stack_src].len);
 					if (mod == 0 && dref_dst && !stack_dst) {
 						stack_dst = stack_src;
 					}
@@ -626,26 +630,26 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 					}
 				}
 				else if (stack[stack_src].type == 1 || stack[stack_src].type == 5) {
-					cu_enc_glo_load_8(func_bin[braces_n], &(func_bn[braces_n]), func_rel[braces_n], &(func_reln[braces_n]), inc_stack, reg, stack[stack_src].str, stack[stack_src].len);
+					cu_enc_glo_load_8(func_bin[braces_n], &(func_bn[braces_n]), func_rel[braces_n], &(func_reln[braces_n]), inc_stack, reg[call_n], stack[stack_src].str, stack[stack_src].len);
 				}
 				else if (stack[stack_src].type == 2 || stack[stack_src].type == 6) {
-					cu_enc_glo_load_16(func_bin[braces_n], &(func_bn[braces_n]), func_rel[braces_n], &(func_reln[braces_n]), inc_stack, reg, stack[stack_src].str, stack[stack_src].len);
+					cu_enc_glo_load_16(func_bin[braces_n], &(func_bn[braces_n]), func_rel[braces_n], &(func_reln[braces_n]), inc_stack, reg[call_n], stack[stack_src].str, stack[stack_src].len);
 				}
 				else if (stack[stack_src].type == 3 || stack[stack_src].type == 7) {
-					cu_enc_glo_load_32(func_bin[braces_n], &(func_bn[braces_n]), func_rel[braces_n], &(func_reln[braces_n]), inc_stack, reg, stack[stack_src].str, stack[stack_src].len);
+					cu_enc_glo_load_32(func_bin[braces_n], &(func_bn[braces_n]), func_rel[braces_n], &(func_reln[braces_n]), inc_stack, reg[call_n], stack[stack_src].str, stack[stack_src].len);
 				}
 				else if (stack[stack_src].type == 4 || stack[stack_src].type == 8) {
-					cu_enc_glo_load_64(func_bin[braces_n], &(func_bn[braces_n]), func_rel[braces_n], &(func_reln[braces_n]), inc_stack, reg, stack[stack_src].str, stack[stack_src].len);
+					cu_enc_glo_load_64(func_bin[braces_n], &(func_bn[braces_n]), func_rel[braces_n], &(func_reln[braces_n]), inc_stack, reg[call_n], stack[stack_src].str, stack[stack_src].len);
 				}
 				
 			}
 			else if (ref_src) {
-				cu_enc_loc_ref(func_bin[braces_n], &(func_bn[braces_n]), inc_stack, reg, stack[stack_src].indx);
+				cu_enc_loc_ref(func_bin[braces_n], &(func_bn[braces_n]), inc_stack, reg[call_n], stack[stack_src].indx);
 				ref_src = 0;
 			}
 			else {
 				if (stack[stack_src].ref) {
-					cu_enc_loc_load_64(func_bin[braces_n], &(func_bn[braces_n]), inc_stack, reg, stack[stack_src].indx);
+					cu_enc_loc_load_64(func_bin[braces_n], &(func_bn[braces_n]), inc_stack, reg[call_n], stack[stack_src].indx);
 					if (mod == 0 && dref_dst && !stack_dst) {
 						stack_dst = stack_src;
 					}
@@ -655,24 +659,24 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 					}
 				}
 				else if (stack[stack_src].type == 1 || stack[stack_src].type == 5) {
-					cu_enc_loc_load_8(func_bin[braces_n], &(func_bn[braces_n]), inc_stack, reg, stack[stack_src].indx);
+					cu_enc_loc_load_8(func_bin[braces_n], &(func_bn[braces_n]), inc_stack, reg[call_n], stack[stack_src].indx);
 				}
 				else if (stack[stack_src].type == 2 || stack[stack_src].type == 6) {
-					cu_enc_loc_load_16(func_bin[braces_n], &(func_bn[braces_n]), inc_stack, reg, stack[stack_src].indx);
+					cu_enc_loc_load_16(func_bin[braces_n], &(func_bn[braces_n]), inc_stack, reg[call_n], stack[stack_src].indx);
 				}
 				else if (stack[stack_src].type == 3 || stack[stack_src].type == 7) {
-					cu_enc_loc_load_32(func_bin[braces_n], &(func_bn[braces_n]), inc_stack, reg, stack[stack_src].indx);
+					cu_enc_loc_load_32(func_bin[braces_n], &(func_bn[braces_n]), inc_stack, reg[call_n], stack[stack_src].indx);
 				}
 				else if (stack[stack_src].type == 4 || stack[stack_src].type == 8) {
-					cu_enc_loc_load_64(func_bin[braces_n], &(func_bn[braces_n]), inc_stack, reg, stack[stack_src].indx);
+					cu_enc_loc_load_64(func_bin[braces_n], &(func_bn[braces_n]), inc_stack, reg[call_n], stack[stack_src].indx);
 				}
 			}
 		}
-		else if (char_flag) {
+		else if (char_flag) { //character immediate
 			uint8_t k = cu_str_int_char(lex, e, path, ln);
-			cu_enc_load_imm(func_bin[braces_n], &(func_bn[braces_n]), inc_stack, reg, k);
+			cu_enc_load_imm(func_bin[braces_n], &(func_bn[braces_n]), inc_stack, reg[call_n], k);
 		}
-		else if (str_flag) {
+		else if (str_flag) { //string immediate
 			func_sym[0][func_symn[0]].str = malloc(12);
 			memcpy(func_sym[0][func_symn[0]].str, "__str_$$_$$_", 12);
 			func_sym[0][func_symn[0]].str[6] = cu_int_hex_char(str_n >> 4);
@@ -682,7 +686,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			func_sym[0][func_symn[0]].len = 12;
 			func_sym[0][func_symn[0]].addr = func_bn[0];
 			func_sym[0][func_symn[0]].typ = 0;
-			cu_enc_glo_ref(func_bin[braces_n], &(func_bn[braces_n]), func_rel[braces_n], &(func_reln[braces_n]), inc_stack, reg, func_sym[0][func_symn[0]].str, func_sym[0][func_symn[0]].len);
+			cu_enc_glo_ref(func_bin[braces_n], &(func_bn[braces_n]), func_rel[braces_n], &(func_reln[braces_n]), inc_stack, reg[call_n], func_sym[0][func_symn[0]].str, func_sym[0][func_symn[0]].len);
 			func_symn[0] = func_symn[0] + 1;
 			for (uint8_t i = 0; i < li; i++) {
 				if (lex[i] == '\\') {
@@ -733,24 +737,26 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				}
 				func_bn[0] = func_bn[0] + 1;
 			}
+			//func_bin[0][func_bn[0]] = 0;
+			//func_bn[0] = func_bn[0] + 1;
 			str_n = str_n + 1;
 		}
-		else {
+		else { //number immediate
 			uint64_t k = cu_str_int_dec(lex, e, path, ln);
-			cu_enc_load_imm(func_bin[braces_n], &(func_bn[braces_n]), inc_stack, reg, k);
+			cu_enc_load_imm(func_bin[braces_n], &(func_bn[braces_n]), inc_stack, reg[call_n], k);
 		}
 	}
 	
 	void adv_assign() {
 		if (op[prnths_n]) {
 			if (op[prnths_n] == 1) {
-				cu_enc_add(func_bin[braces_n], &(func_bn[braces_n]), dec_stack, reg);
-				reg = reg - 1;
+				cu_enc_add(func_bin[braces_n], &(func_bn[braces_n]), dec_stack, reg[call_n]);
+				reg[call_n] = reg[call_n] - 1;
 				op[prnths_n] = 0;
 			}
 			else if (op[prnths_n] == 2) {
-				cu_enc_sub(func_bin[braces_n], &(func_bn[braces_n]), dec_stack, reg);
-				reg = reg - 1;
+				cu_enc_sub(func_bin[braces_n], &(func_bn[braces_n]), dec_stack, reg[call_n]);
+				reg[call_n] = reg[call_n] - 1;
 				op[prnths_n] = 0;
 			}
 			else if (op[prnths_n] == 3) {
@@ -774,7 +780,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				else{
 					load_src(stack_dst);
 				}
-				cu_enc_inc(func_bin[braces_n], &(func_bn[braces_n]), reg);
+				cu_enc_inc(func_bin[braces_n], &(func_bn[braces_n]), reg[call_n]);
 				op[prnths_n] = 0;
 			}
 			else if (op[prnths_n] == 4) {
@@ -798,125 +804,142 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				else{
 					load_src(stack_dst);
 				}
-				cu_enc_dec(func_bin[braces_n], &(func_bn[braces_n]), reg);
+				cu_enc_dec(func_bin[braces_n], &(func_bn[braces_n]), reg[call_n]);
 				op[prnths_n] = 0;
 			}
 			else if (op[prnths_n] == 5) {
-				cu_enc_bit_not(func_bin[braces_n], &(func_bn[braces_n]), reg);
+				cu_enc_bit_not(func_bin[braces_n], &(func_bn[braces_n]), reg[call_n]);
 				op[prnths_n] = 0;
 				prnths_n = prnths_n - 1;
 				adv_assign();
 			}
 			else if (op[prnths_n] == 6) {
-				cu_enc_bit_and(func_bin[braces_n], &(func_bn[braces_n]), dec_stack, reg);
-				reg = reg - 1;
+				cu_enc_bit_and(func_bin[braces_n], &(func_bn[braces_n]), dec_stack, reg[call_n]);
+				reg[call_n] = reg[call_n] - 1;
 				op[prnths_n] = 0;
 			}
 			else if (op[prnths_n] == 7) {
-				cu_enc_bit_or(func_bin[braces_n], &(func_bn[braces_n]), dec_stack, reg);
-				reg = reg - 1;
+				cu_enc_bit_or(func_bin[braces_n], &(func_bn[braces_n]), dec_stack, reg[call_n]);
+				reg[call_n] = reg[call_n] - 1;
 				op[prnths_n] = 0;
 			}
 			else if (op[prnths_n] == 8) {
-				cu_enc_bit_xor(func_bin[braces_n], &(func_bn[braces_n]), dec_stack, reg);
-				reg = reg - 1;
+				cu_enc_bit_xor(func_bin[braces_n], &(func_bn[braces_n]), dec_stack, reg[call_n]);
+				reg[call_n] = reg[call_n] - 1;
 				op[prnths_n] = 0;
 			}
 			else if (op[prnths_n] == 9) {
-				cu_enc_bit_shl(func_bin[braces_n], &(func_bn[braces_n]), dec_stack, reg);
-				reg = reg - 1;
+				cu_enc_bit_shl(func_bin[braces_n], &(func_bn[braces_n]), dec_stack, reg[call_n]);
+				reg[call_n] = reg[call_n] - 1;
 				op[prnths_n] = 0;
 			}
 			else if (op[prnths_n] == 10) {
-				cu_enc_bit_shr(func_bin[braces_n], &(func_bn[braces_n]), dec_stack, reg);
-				reg = reg - 1;
+				cu_enc_bit_shr(func_bin[braces_n], &(func_bn[braces_n]), dec_stack, reg[call_n]);
+				reg[call_n] = reg[call_n] - 1;
 				op[prnths_n] = 0;
 			}
 			else if (op[prnths_n] == 11) {
-				cu_enc_log_not(func_bin[braces_n], &(func_bn[braces_n]), reg);
+				cu_enc_log_not(func_bin[braces_n], &(func_bn[braces_n]), reg[call_n]);
 				op[prnths_n] = 0;
 				prnths_n = prnths_n - 1;
 				adv_assign();
 			}
 			else if (op[prnths_n] == 12) {
-				cu_enc_log_and(func_bin[braces_n], &(func_bn[braces_n]), dec_stack, reg);
-				reg = reg - 1;
+				cu_enc_log_and(func_bin[braces_n], &(func_bn[braces_n]), dec_stack, reg[call_n]);
+				reg[call_n] = reg[call_n] - 1;
 				op[prnths_n] = 0;
 			}
 			else if (op[prnths_n] == 13) {
-				cu_enc_log_or(func_bin[braces_n], &(func_bn[braces_n]), dec_stack, reg);
-				reg = reg - 1;
+				cu_enc_log_or(func_bin[braces_n], &(func_bn[braces_n]), dec_stack, reg[call_n]);
+				reg[call_n] = reg[call_n] - 1;
 				op[prnths_n] = 0;
 			}
 			else if (op[prnths_n] == 14) {
-				cu_enc_log_eq(func_bin[braces_n], &(func_bn[braces_n]), dec_stack, reg);
-				reg = reg - 1;
+				cu_enc_log_eq(func_bin[braces_n], &(func_bn[braces_n]), dec_stack, reg[call_n]);
+				reg[call_n] = reg[call_n] - 1;
 				op[prnths_n] = 0;
 			}
 			else if (op[prnths_n] == 15) {
-				cu_enc_log_neq(func_bin[braces_n], &(func_bn[braces_n]), dec_stack, reg);
-				reg = reg - 1;
+				cu_enc_log_neq(func_bin[braces_n], &(func_bn[braces_n]), dec_stack, reg[call_n]);
+				reg[call_n] = reg[call_n] - 1;
 				op[prnths_n] = 0;
 			}
 			else if (op[prnths_n] == 16) {
-				cu_enc_log_lt(func_bin[braces_n], &(func_bn[braces_n]), dec_stack, reg);
-				reg = reg - 1;
+				cu_enc_log_lt(func_bin[braces_n], &(func_bn[braces_n]), dec_stack, reg[call_n]);
+				reg[call_n] = reg[call_n] - 1;
 				op[prnths_n] = 0;
 			}
 			else if (op[prnths_n] == 17) {
-				cu_enc_log_leq(func_bin[braces_n], &(func_bn[braces_n]), dec_stack, reg);
-				reg = reg - 1;
+				cu_enc_log_leq(func_bin[braces_n], &(func_bn[braces_n]), dec_stack, reg[call_n]);
+				reg[call_n] = reg[call_n] - 1;
 				op[prnths_n] = 0;
 			}
 			else if (op[prnths_n] == 18) {
-				cu_enc_log_gt(func_bin[braces_n], &(func_bn[braces_n]), dec_stack, reg);
-				reg = reg - 1;
+				cu_enc_log_gt(func_bin[braces_n], &(func_bn[braces_n]), dec_stack, reg[call_n]);
+				reg[call_n] = reg[call_n] - 1;
 				op[prnths_n] = 0;
 			}
 			else if (op[prnths_n] == 19) {
-				cu_enc_log_geq(func_bin[braces_n], &(func_bn[braces_n]), dec_stack, reg);
-				reg = reg - 1;
+				cu_enc_log_geq(func_bin[braces_n], &(func_bn[braces_n]), dec_stack, reg[call_n]);
+				reg[call_n] = reg[call_n] - 1;
 				op[prnths_n] = 0;
 			}
 			else if (op[prnths_n] == 20) {
-				cu_enc_mult(func_bin[braces_n], &(func_bn[braces_n]), dec_stack, reg);
-				reg = reg - 1;
+				cu_enc_mult(func_bin[braces_n], &(func_bn[braces_n]), dec_stack, reg[call_n]);
+				reg[call_n] = reg[call_n] - 1;
 				op[prnths_n] = 0;
 			}
 			else if (op[prnths_n] == 21) {
-				cu_enc_div(func_bin[braces_n], &(func_bn[braces_n]), dec_stack, reg);
-				reg = reg - 1;
+				cu_enc_div(func_bin[braces_n], &(func_bn[braces_n]), dec_stack, reg[call_n]);
+				reg[call_n] = reg[call_n] - 1;
 				op[prnths_n] = 0;
 			}
 			else if (op[prnths_n] == 22) {
-				cu_enc_mod(func_bin[braces_n], &(func_bn[braces_n]), dec_stack, reg);
-				reg = reg - 1;
+				cu_enc_mod(func_bin[braces_n], &(func_bn[braces_n]), dec_stack, reg[call_n]);
+				reg[call_n] = reg[call_n] - 1;
 				op[prnths_n] = 0;
 			}
 			else if (op[prnths_n] == 23) {
 				if (!stack_ref) {
-					cu_enc_load_dref_64(func_bin[braces_n], &(func_bn[braces_n]), reg);
+					cu_enc_load_dref_64(func_bin[braces_n], &(func_bn[braces_n]), reg[call_n]);
 				}
 				else if (stack[stack_ref].type == 1 || stack[stack_ref].type == 5) {
-					cu_enc_load_dref_8(func_bin[braces_n], &(func_bn[braces_n]), reg);
+					cu_enc_load_dref_8(func_bin[braces_n], &(func_bn[braces_n]), reg[call_n]);
 				}
 				else if (stack[stack_ref].type == 2 || stack[stack_ref].type == 6) {
-					cu_enc_load_dref_16(func_bin[braces_n], &(func_bn[braces_n]), reg);
+					cu_enc_load_dref_16(func_bin[braces_n], &(func_bn[braces_n]), reg[call_n]);
 				}
 				else if (stack[stack_ref].type == 3 || stack[stack_ref].type == 7) {
-					cu_enc_load_dref_32(func_bin[braces_n], &(func_bn[braces_n]), reg);
+					cu_enc_load_dref_32(func_bin[braces_n], &(func_bn[braces_n]), reg[call_n]);
 				}
 				else if (stack[stack_ref].type == 4 || stack[stack_ref].type == 8) {
-					cu_enc_load_dref_64(func_bin[braces_n], &(func_bn[braces_n]), reg);
+					cu_enc_load_dref_64(func_bin[braces_n], &(func_bn[braces_n]), reg[call_n]);
 				}
 				op[prnths_n] = 0;
 				prnths_n = prnths_n - 1;
 				adv_assign();
 			}
 			else if (op[prnths_n] == 24) {
-				reg = reg + 1;
+				reg[call_n] = reg[call_n] + 1;
 				op[prnths_n] = 0;
 				prnths_n = prnths_n - 1;
+			}
+			else if (op[prnths_n] == 25) {
+				if (stack[func_call[call_n]].mem_n > arg_n[call_n]) {
+					printf("[%s, %lu] error: too few arguments given to function '%s'\n", path, ln, stack[func_call[call_n]].str);
+					*e = -1;
+				}
+				else if (stack[func_call[call_n]].mem_n < arg_n[call_n]) {
+					printf("[%s, %lu] error: too many arguments given to function '%s'\n", path, ln, stack[func_call[call_n]].str);
+					*e = -1;
+				}
+				else {
+					cu_enc_func_call(func_bin[braces_n], &(func_bn[braces_n]), func_rel[braces_n], &(func_reln[braces_n]), dec_stack, reg[call_n - 1], stack[func_call[call_n]].str, stack[func_call[call_n]].len, count_para(stack[func_call[call_n]]));
+				}
+				func_call[call_n] = 0;
+				call_n = call_n - 1;
+				op[prnths_n] = 0;
+				arg_n[call_n] = 0;
 			}
 		}
 	}
@@ -941,7 +964,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			else if (stack[stack_dst].type == 4 || stack[stack_dst].type == 8) {
 				cu_enc_str_dref_64(func_bin[braces_n], &(func_bn[braces_n]));
 			}
-			reg = 0;
+			reg[call_n] = 0;
 			dref_dst = 0;
 		}
 		else if (!stack[stack_dst].scop) {
@@ -971,32 +994,31 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			else if (stack[stack_dst].type == 3 || stack[stack_dst].type == 7) {
 				cu_enc_loc_str_32(func_bin[braces_n], &(func_bn[braces_n]), stack[stack_dst].indx);
 			}
-			reg = 0;
+			reg[call_n] = 0;
 		}
 		mod = 0;
 	}
+		
+	void load_arg() {
+		if (stack[func_call[call_n]].mem[arg_n[call_n]].type == 4 || stack[func_call[call_n]].mem[arg_n[call_n]].type == 8 || stack[func_call[call_n]].mem[arg_n[call_n]].ref) {
+			cu_enc_loc_str_64(func_bin[braces_n], &(func_bn[braces_n]), stack[func_call[call_n]].mem[arg_n[call_n]].indx);
+		}
+		else if (stack[func_call[call_n]].mem[arg_n[call_n]].type == 1 || stack[func_call[call_n]].mem[arg_n[call_n]].type == 5) {
+			cu_enc_loc_str_8(func_bin[braces_n], &(func_bn[braces_n]), stack[func_call[call_n]].mem[arg_n[call_n]].indx);
+		}
+		else if (stack[func_call[call_n]].mem[arg_n[call_n]].type == 2 || stack[func_call[call_n]].mem[arg_n[call_n]].type == 6) {
+			cu_enc_loc_str_16(func_bin[braces_n], &(func_bn[braces_n]), stack[func_call[call_n]].mem[arg_n[call_n]].indx);
+		}
+		else if (stack[func_call[call_n]].mem[arg_n[call_n]].type == 3 || stack[func_call[call_n]].mem[arg_n[call_n]].type == 7) {
+			cu_enc_loc_str_32(func_bin[braces_n], &(func_bn[braces_n]), stack[func_call[call_n]].mem[arg_n[call_n]].indx);
+		}
+		reg[call_n] = 0;
+	}
 	
 	void next_str() {
-		if (mod == 1 || dref_dst) {
+		if (mod == 1 || dref_dst || call_n) {
 			load_src(find_stack(lex));
 			adv_assign();
-		}
-		else if (func_call) { //function call
-			uint16_t func = find_stack(lex);
-			if (!func) {
-				func_call = 0;
-				printf("[%s, %lu] error: '%s' has not been declared\n", path, ln, stack[func].str);
-				*e = -1;
-			}
-			else if (!(stack[func].func)) {
-				func_call = 0;
-				printf("[%s, %lu] error: '%s' is not a function\n", path, ln, stack[func].str);
-				*e = -1;
-			}
-			else {
-				func_call = func;
-				cu_enc_func_pre_call(func_bin[braces_n], &(func_bn[braces_n]), inc_stack, reg, count_para(stack[func]));
-			}
 		}
 		else if (!key && !stack_dst) { //variable assignment
 			key = cu_str_key(lex);
@@ -1133,7 +1155,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 	}
 	
 	for (uint64_t fi = 0; fi < fs.st_size; fi++) {
-		//printf("%c, %u\n", fx[fi], prnths_n);
+		//printf("[%s, %lu] %c: %u\n", path, ln, fx[fi], op[prnths_n]);
 		
 		if (((fx[fi] >= 97 && fx[fi] <= 122) || (fx[fi] >= 48 && fx[fi] <= 57)  || (fx[fi] >= 65 && fx[fi] <= 90) || fx[fi] == '_' || (fx[fi] == '-' && fx[fi + 1] != ' ' && fx[fi + 1] != '-' && fx[fi + 1] != '-')) && !c && !char_flag && !str_flag) { //string
 			lex[li] = fx[fi];
@@ -1201,11 +1223,8 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			if (li) {
 				next_str();
 			}
-			if (mod == 1 || dref_dst) { 
-				reg = reg + 1;
-				op[prnths_n] = 1;
-			}
-			else if (mod == 2) {
+			if (mod == 1 || dref_dst || call_n) { 
+				reg[call_n] = reg[call_n] + 1;
 				op[prnths_n] = 1;
 			}
 		}
@@ -1234,8 +1253,8 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			if (li) {
 				next_str();
 			}
-			if (mod == 1 || dref_dst) {
-				reg = reg + 1;
+			if (mod == 1 || dref_dst || call_n) {
+				reg[call_n] = reg[call_n] + 1;
 				op[prnths_n] = 2;
 			}
 		}
@@ -1243,8 +1262,8 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			if (li) {
 				next_str();
 			}
-			if (mod == 1 || dref_dst) {
-				reg = reg + 1;
+			if (mod == 1 || dref_dst || call_n) {
+				reg[call_n] = reg[call_n] + 1;
 				op[prnths_n] = 15;
 			}
 			fi = fi + 1;
@@ -1253,7 +1272,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			if (li) {
 				next_str();
 			}
-			if (mod == 1 || dref_dst) {
+			if (mod == 1 || dref_dst || call_n) {
 				prnths_n = prnths_n + 1;
 				op[prnths_n] = 11;
 			}	
@@ -1262,7 +1281,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			if (li) {
 				next_str();
 			}
-			if (mod == 1 || dref_dst) {
+			if (mod == 1 || dref_dst || call_n) {
 				prnths_n = prnths_n + 1;
 				op[prnths_n] = 5;
 			}
@@ -1271,8 +1290,8 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			if (li) {
 				next_str();
 			}
-			if (mod == 1 || dref_dst) {
-				reg = reg + 1;
+			if (mod == 1 || dref_dst || call_n) {
+				reg[call_n] = reg[call_n] + 1;
 				op[prnths_n] = 12;
 			}
 			fi = fi + 1;
@@ -1284,8 +1303,8 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			if (mod == 1 && fx[fi + 1] != ' ' && fx[fi + 1] != '(') { //reference
 				ref_src = 1;
 			}
-			else if (mod == 1 || dref_dst) { //bitwise and
-				reg = reg + 1;
+			else if (mod == 1 || dref_dst || call_n) { //bitwise and
+				reg[call_n] = reg[call_n] + 1;
 				op[prnths_n] = 6;
 			}
 		}
@@ -1293,8 +1312,8 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			if (li) {
 				next_str();
 			}
-			if (mod == 1 || dref_dst) {
-				reg = reg + 1;
+			if (mod == 1 || dref_dst || call_n) {
+				reg[call_n] = reg[call_n] + 1;
 				op[prnths_n] = 13;
 			}
 			fi = fi + 1;
@@ -1303,8 +1322,8 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			if (li) {
 				next_str();
 			}
-			if (mod == 1 || dref_dst) {
-				reg = reg + 1;
+			if (mod == 1 || dref_dst || call_n) {
+				reg[call_n] = reg[call_n] + 1;
 				op[prnths_n] = 7;
 			}
 		}
@@ -1312,8 +1331,8 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			if (li) {
 				next_str();
 			}
-			if (mod == 1 || dref_dst) {
-				reg = reg + 1;
+			if (mod == 1 || dref_dst || call_n) {
+				reg[call_n] = reg[call_n] + 1;
 				op[prnths_n] = 8;
 			}
 		}
@@ -1321,8 +1340,8 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			if (li) {
 				next_str();
 			}
-			if (mod == 1 || dref_dst) {
-				reg = reg + 1;
+			if (mod == 1 || dref_dst || call_n) {
+				reg[call_n] = reg[call_n] + 1;
 				op[prnths_n] = 9;
 			}
 			fi = fi + 1;
@@ -1331,8 +1350,8 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			if (li) {
 				next_str();
 			}
-			if (mod == 1 || dref_dst) {
-				reg = reg + 1;
+			if (mod == 1 || dref_dst || call_n) {
+				reg[call_n] = reg[call_n] + 1;
 				op[prnths_n] = 17;
 			}
 			fi = fi + 1;
@@ -1341,8 +1360,8 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			if (li) {
 				next_str();
 			}
-			if (mod == 1 || dref_dst) {
-				reg = reg + 1;
+			if (mod == 1 || dref_dst || call_n) {
+				reg[call_n] = reg[call_n] + 1;
 				op[prnths_n] = 16;
 			}
 		}
@@ -1350,8 +1369,8 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			if (li) {
 				next_str();
 			}
-			if (mod == 1 || dref_dst) {
-				reg = reg + 1;
+			if (mod == 1 || dref_dst || call_n) {
+				reg[call_n] = reg[call_n] + 1;
 				op[prnths_n] = 10;
 			}
 			fi = fi + 1;
@@ -1360,8 +1379,8 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			if (li) {
 				next_str();
 			}
-			if (mod == 1 || dref_dst) {
-				reg = reg + 1;
+			if (mod == 1 || dref_dst || call_n) {
+				reg[call_n] = reg[call_n] + 1;
 				op[prnths_n] = 19;
 			}
 			fi = fi + 1;
@@ -1370,8 +1389,8 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			if (li) {
 				next_str();
 			}
-			if (mod == 1 || dref_dst) {
-				reg = reg + 1;
+			if (mod == 1 || dref_dst || call_n) {
+				reg[call_n] = reg[call_n] + 1;
 				op[prnths_n] = 18;
 			}
 		}
@@ -1379,8 +1398,8 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			if (li) {
 				next_str();
 			}
-			if (mod == 1 || dref_dst) {
-				reg = reg + 1;
+			if (mod == 1 || dref_dst || call_n) {
+				reg[call_n] = reg[call_n] + 1;
 				op[prnths_n] = 14;
 			}
 			fi = fi + 1;
@@ -1401,18 +1420,18 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			if (key >= 1 && key <= 8) { //pointer declaration
 				ref = ref + 1;
 			}
+			else if ((mod == 1 || call_n) && fx[fi + 1] != ' ') { //dereference source
+				prnths_n = prnths_n + 1;
+				op[prnths_n] = 23;
+				dref_src = 1;
+			}
 			else if (mod == 0 && fx[fi + 1] != ' ') { //dereference destination
 				prnths_n = prnths_n + 1;
 				op[prnths_n] = 24;
 				dref_dst = 1;
 			}
-			else if (mod == 1 && fx[fi + 1] != ' ') { //dereference source
-				prnths_n = prnths_n + 1;
-				op[prnths_n] = 23;
-				dref_src = 1;
-			}
-			else if (mod == 1 || dref_dst) { //multiplication
-				reg = reg + 1;
+			else if (mod == 1 || dref_dst || call_n) { //multiplication
+				reg[call_n] = reg[call_n] + 1;
 				op[prnths_n] = 20;
 			}
 		}
@@ -1432,8 +1451,8 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			if (li) {
 				next_str();
 			}
-			if (mod == 1 || dref_dst) {
-				reg = reg + 1;
+			if (mod == 1 || dref_dst || call_n) {
+				reg[call_n] = reg[call_n] + 1;
 				op[prnths_n] = 21;
 			}
 		}
@@ -1441,8 +1460,8 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			if (li) {
 				next_str();
 			}
-			if (mod == 1 || dref_dst) {
-				reg = reg + 1;
+			if (mod == 1 || dref_dst || call_n) {
+				reg[call_n] = reg[call_n] + 1;
 				op[prnths_n] = 22;
 			}
 		}
@@ -1460,13 +1479,23 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				next_str();
 			}
 		}
-		else if ((fx[fi] == ',') && li && !c && !char_flag && !str_flag) { //next string (parameter)
-			if (para_dec && key) {
+		else if ((fx[fi] == ',') && !c && !char_flag && !str_flag) { //next string (parameter)
+			if (para_dec && key && li) {
 				next_str();	
 			}
 			else if (para_dec) {
 				printf("[%s, %lu] error: expected parameter\n", path, ln);
 				*e = -1;
+			}
+			else if (call_n) {
+				if (arg_n[call_n] < stack[func_call[call_n]].mem_n) {
+					if (li) {
+						load_src(find_stack(lex));
+						adv_assign();
+					}
+					load_arg();
+				}
+				arg_n[call_n] = arg_n[call_n] + 1;
 			}
 			lex[0] = 0;
 			li = 0;
@@ -1488,18 +1517,44 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			fi = fi + 1;
 		}
 		else if ((fx[fi] == '(') && !c && !char_flag && !str_flag) {
+			prnths_n = prnths_n + 1;
 			if (li && key) { //function declaration
 				func_dec = 1;
 				next_str();
 			}
 			else if (li) { //function call
-				func_call = 1;
-				next_str();
+				op[prnths_n] = 25;
+				prnths_n = prnths_n + 1;
+				call_n = call_n + 1;
+				func_call[call_n] = find_stack(lex);
+				if (!(func_call[call_n])) {
+					printf("[%s, %lu] error: '%s' has not been declared\n", path, ln, stack[func_call[call_n]].str);
+					*e = -1;
+				}
+				else if (!(stack[func_call[call_n]].func)) {
+					printf("[%s, %lu] error: '%s' is not a function\n", path, ln, stack[func_call[call_n]].str);
+					*e = -1;
+				}
+				else {
+					cu_enc_func_pre_call(func_bin[braces_n], &(func_bn[braces_n]), inc_stack, reg[call_n - 1], count_para(stack[func_call[call_n]]));
+				}
+				lex[0] = 0;
+				li = 0;
 			}
-			prnths_n = prnths_n + 1;
 		}
 		else if ((fx[fi] == ')') && !c && !char_flag && !str_flag) { 
-			if (li) {
+			if (li && op[prnths_n - 1] == 25) {
+				prnths_n = prnths_n - 1;
+				if (arg_n[call_n] < stack[func_call[call_n]].mem_n) {
+					load_src(find_stack(lex));
+					load_arg();
+				}
+				arg_n[call_n] = arg_n[call_n] + 1;
+				lex[0] = 0;
+				li = 0;
+				adv_assign();
+			}
+			else if (li) {
 				next_str();
 			}
 			if (para_dec) {
@@ -1511,10 +1566,6 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 					stack[(stack_n - 1) - para_n].mem[i].ref = stack[(stack_n - para_n) + i].ref;
 				}
 				para_dec = 0;
-			}
-			else if (func_call) {
-				cu_enc_func_call(func_bin[braces_n], &(func_bn[braces_n]), func_rel[braces_n], &(func_reln[braces_n]), dec_stack, reg, stack[func_call].str, stack[func_call].len);
-				func_call = 0;
 			}
 			if (prnths_n == 0) {
 				printf("[%s, %lu] error: excess parenthesis\n", path, ln);
