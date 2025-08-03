@@ -509,13 +509,18 @@ void x86_64_enc_func_call(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uint
 	reg = x86_64_inc_reg(reg);
 	
 	x86_64_enc_call(bin, bn, 0); //call [func]
+	if (sz) {
+		x86_64_enc_sub_reg_imm(bin, bn, 52, sz); //sub rsp, [sz]
+		dec_stack(sz);
+	}
 	for (uint8_t i = reg & 15; i > 0; i--) {
 		x86_64_enc_pop_reg(bin, bn, (i - 1) | 48); //pop [i - 1]
 		dec_stack(8);
 	}
-	if (sz) {
-		dec_stack(sz);
-	}
+}
+
+void x86_64_enc_func_ret(uint8_t* bin, uint64_t* bn) {
+	x86_64_enc_ret(bin, bn);
 }
 
 void x86_64_enc_add(uint8_t* bin, uint64_t* bn, void (*dec_stack) (uint8_t), uint8_t reg) {

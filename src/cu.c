@@ -27,18 +27,20 @@
 /* todo
  
  - functions
- 	- argument loading
 	- return values
 	- function pointers
- 
+ - conditionals
+ 	- while loops
+	- for loops
+	- if statements
+	- if else statements
+	- else statements
  - arrays
 	- array declaration
  	- single and multi dimensional
  	- array loading
  	- array storing
- 
  - structs
- 
  - casting
  
 */
@@ -146,6 +148,8 @@ void (*cu_enc_load_imm) (uint8_t*, uint64_t*, void (*inc_stack) (uint8_t), uint8
 void (*cu_enc_func_pre_call) (uint8_t*, uint64_t*, void (*inc_stack) (uint8_t), uint8_t, uint16_t);
 
 void (*cu_enc_func_call) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, void (*inc_stack) (uint8_t), uint8_t, uint8_t*, uint8_t, uint16_t);
+
+void (*cu_enc_func_ret) (uint8_t*, uint64_t*);
 
 void (*cu_enc_add) (uint8_t*, uint64_t*, void (*dec_stack) (uint8_t), uint8_t);
 
@@ -937,9 +941,9 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 					cu_enc_func_call(func_bin[braces_n], &(func_bn[braces_n]), func_rel[braces_n], &(func_reln[braces_n]), dec_stack, reg[call_n - 1], stack[func_call[call_n]].str, stack[func_call[call_n]].len, count_para(stack[func_call[call_n]]));
 				}
 				func_call[call_n] = 0;
+				arg_n[call_n] = 0;	
 				call_n = call_n - 1;
 				op[prnths_n] = 0;
-				arg_n[call_n] = 0;
 			}
 		}
 	}
@@ -1511,6 +1515,10 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				printf("[%s, %lu] error: expected parenthesis\n", path, ln);
 				*e = -1;
 			}
+			if (func_dec) {
+				func_dec = 0;
+				para_n = 0;
+			}
 			stack_dst = 0;
 		}
 		else if ((fx[fi] == '(') && (fx[fi + 1] == '*') && key && !c && !char_flag && !str_flag) { //function pointer
@@ -1544,11 +1552,12 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 		}
 		else if ((fx[fi] == ')') && !c && !char_flag && !str_flag) { 
 			if (li && op[prnths_n - 1] == 25) {
-				prnths_n = prnths_n - 1;
 				if (arg_n[call_n] < stack[func_call[call_n]].mem_n) {
 					load_src(find_stack(lex));
+					adv_assign();
 					load_arg();
 				}
+				prnths_n = prnths_n - 1;
 				arg_n[call_n] = arg_n[call_n] + 1;
 				lex[0] = 0;
 				li = 0;
@@ -1560,7 +1569,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			if (para_dec) {
 				stack[(stack_n - 1) - para_n].mem = malloc(sizeof(struct cu_data_s) * (para_n));
 				stack[(stack_n - 1) - para_n].mem_n = para_n;
-				for (uint8_t i; i < para_n; i++) {
+				for (uint8_t i = 0; i < para_n; i++) {
 					stack[(stack_n - 1) - para_n].mem[i].type = stack[(stack_n - para_n) + i].type;
 					stack[(stack_n - 1) - para_n].mem[i].indx = stack[(stack_n - para_n) + i].indx;
 					stack[(stack_n - 1) - para_n].mem[i].ref = stack[(stack_n - para_n) + i].ref;
@@ -1616,6 +1625,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				//error
 			}
 			else {
+				cu_enc_func_ret(func_bin[braces_n], &(func_bn[braces_n]));
 				rem_stack(braces_n);
 			}
 			braces_n = braces_n - 1;
@@ -1781,6 +1791,7 @@ int8_t main(int32_t argc, int8_t** argv) {
 		cu_enc_load_imm = x86_64_enc_load_imm;
 		cu_enc_func_pre_call = x86_64_enc_func_pre_call;
 		cu_enc_func_call = x86_64_enc_func_call;
+		cu_enc_func_ret = x86_64_enc_func_ret;
 		cu_enc_add = x86_64_enc_add;
 		cu_enc_sub = x86_64_enc_sub;
 		cu_enc_inc = x86_64_enc_inc;
