@@ -98,7 +98,15 @@ void x86_64_enc_load_imm(uint8_t*, uint64_t*, void (*inc_stack) (uint8_t), uint8
 
 void x86_64_enc_func_pre_call (uint8_t*, uint64_t*, void (*inc_stack) (uint8_t), uint8_t, uint16_t);
 
-void x86_64_enc_func_call (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, void (*inc_stack) (uint8_t), uint8_t, uint8_t*, uint8_t, uint16_t);
+void x86_64_enc_func_call_8 (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, void (*inc_stack) (uint8_t), uint8_t, uint8_t*, uint8_t, uint16_t);
+
+void x86_64_enc_func_call_16 (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, void (*inc_stack) (uint8_t), uint8_t, uint8_t*, uint8_t, uint16_t);
+
+void x86_64_enc_func_call_32 (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, void (*inc_stack) (uint8_t), uint8_t, uint8_t*, uint8_t, uint16_t);
+
+void x86_64_enc_func_call_64 (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, void (*inc_stack) (uint8_t), uint8_t, uint8_t*, uint8_t, uint16_t);
+
+void x86_64_enc_func_call_void (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, void (*inc_stack) (uint8_t), uint8_t, uint8_t*, uint8_t, uint16_t);
 
 void x86_64_enc_func_ret (uint8_t*, uint64_t*);
 

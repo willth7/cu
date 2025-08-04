@@ -488,17 +488,17 @@ void x86_64_enc_load_imm(uint8_t* bin, uint64_t* bn, void (*inc_stack) (uint8_t)
 void x86_64_enc_func_pre_call(uint8_t* bin, uint64_t* bn, void (*inc_stack) (uint8_t), uint8_t reg, uint16_t sz) {
 	reg = x86_64_inc_reg(reg);
 	
-	for (uint8_t i = 0; i < (reg & 15); i++) {
+	for (uint8_t i = 0; i < (reg & 15); i++) { //preserves registers
 		x86_64_enc_push_reg(bin, bn, i | 48); //push [i]
 		inc_stack(8);
 	}
-	if (sz) {
+	if (sz) { //creates argument stack
 		x86_64_enc_sub_reg_imm(bin, bn, 52, sz); //sub rsp, [sz]
 		inc_stack(sz);
 	}
 }
 
-void x86_64_enc_func_call(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uint64_t* reln, void (*dec_stack) (uint8_t), uint8_t reg, uint8_t* str, uint8_t len, uint16_t sz) {
+void x86_64_enc_func_call_8(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uint64_t* reln, void (*dec_stack) (uint8_t), uint8_t reg, uint8_t* str, uint8_t len, uint16_t sz) {
 	rel[*reln].str = malloc(len);
 	memcpy(rel[*reln].str, str, len);
 	rel[*reln].len = len;
@@ -509,11 +509,119 @@ void x86_64_enc_func_call(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uint
 	reg = x86_64_inc_reg(reg);
 	
 	x86_64_enc_call(bin, bn, 0); //call [func]
-	if (sz) {
+	if (sz) { //removes argument stack
 		x86_64_enc_add_reg_imm(bin, bn, 52, sz); //add rsp, [sz]
 		dec_stack(sz);
 	}
-	for (uint8_t i = reg & 15; i > 0; i--) {
+	if (reg & 15) { //moves return value into register
+		x86_64_enc_xor_reg_reg(bin, bn, reg | 48, reg | 48); //xor [reg], [reg]
+		x86_64_enc_mov_reg_reg(bin, bn, reg & 15, 0); //mov [reg], al
+	}
+	else {
+		x86_64_enc_and_reg_imm(bin, bn, reg | 48, 255); //and rax, 255
+	}
+	for (uint8_t i = reg & 15; i > 0; i--) { //restores preserved registers
+		x86_64_enc_pop_reg(bin, bn, (i - 1) | 48); //pop [i - 1]
+		dec_stack(8);
+	}
+}
+
+void x86_64_enc_func_call_16(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uint64_t* reln, void (*dec_stack) (uint8_t), uint8_t reg, uint8_t* str, uint8_t len, uint16_t sz) {
+	rel[*reln].str = malloc(len);
+	memcpy(rel[*reln].str, str, len);
+	rel[*reln].len = len;
+	rel[*reln].addr = *bn;
+	rel[*reln].typ = 3;
+	*reln = *reln + 1;
+	
+	reg = x86_64_inc_reg(reg);
+	
+	x86_64_enc_call(bin, bn, 0); //call [func]
+	if (sz) { //removes argument stack
+		x86_64_enc_add_reg_imm(bin, bn, 52, sz); //add rsp, [sz]
+		dec_stack(sz);
+	}
+	if (reg & 15) { //moves return value into register
+		x86_64_enc_xor_reg_reg(bin, bn, reg | 48, reg | 48); //xor [reg], [reg]
+		x86_64_enc_mov_reg_reg(bin, bn, reg | 16, 16); //mov [reg], rax
+	}
+	else {
+		x86_64_enc_and_reg_imm(bin, bn, reg | 48, 65535); //and rax, 65535
+	}
+	for (uint8_t i = reg & 15; i > 0; i--) { //restores preserved registers
+		x86_64_enc_pop_reg(bin, bn, (i - 1) | 48); //pop [i - 1]
+		dec_stack(8);
+	}
+}
+
+void x86_64_enc_func_call_32(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uint64_t* reln, void (*dec_stack) (uint8_t), uint8_t reg, uint8_t* str, uint8_t len, uint16_t sz) {
+	rel[*reln].str = malloc(len);
+	memcpy(rel[*reln].str, str, len);
+	rel[*reln].len = len;
+	rel[*reln].addr = *bn;
+	rel[*reln].typ = 3;
+	*reln = *reln + 1;
+	
+	reg = x86_64_inc_reg(reg);
+	
+	x86_64_enc_call(bin, bn, 0); //call [func]
+	if (sz) { //removes argument stack
+		x86_64_enc_add_reg_imm(bin, bn, 52, sz); //add rsp, [sz]
+		dec_stack(sz);
+	}
+	if (reg & 15) { //moves return value into register
+		x86_64_enc_xor_reg_reg(bin, bn, reg | 48, reg | 48); //xor [reg], [reg]
+		x86_64_enc_mov_reg_reg(bin, bn, reg | 32, 32); //mov [reg], rax
+	}
+	else {
+		x86_64_enc_and_reg_imm(bin, bn, reg | 48, 4294967295); //and rax, 4294967295
+	}
+	for (uint8_t i = reg & 15; i > 0; i--) { //restores preserved registers
+		x86_64_enc_pop_reg(bin, bn, (i - 1) | 48); //pop [i - 1]
+		dec_stack(8);
+	}
+}
+
+void x86_64_enc_func_call_64(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uint64_t* reln, void (*dec_stack) (uint8_t), uint8_t reg, uint8_t* str, uint8_t len, uint16_t sz) {
+	rel[*reln].str = malloc(len);
+	memcpy(rel[*reln].str, str, len);
+	rel[*reln].len = len;
+	rel[*reln].addr = *bn;
+	rel[*reln].typ = 3;
+	*reln = *reln + 1;
+	
+	reg = x86_64_inc_reg(reg);
+	
+	x86_64_enc_call(bin, bn, 0); //call [func]
+	if (sz) { //removes argument stack
+		x86_64_enc_add_reg_imm(bin, bn, 52, sz); //add rsp, [sz]
+		dec_stack(sz);
+	}
+	if (reg & 15) { //moves return value into register
+		x86_64_enc_mov_reg_reg(bin, bn, reg | 48, 48); //mov [reg], rax
+	}
+	for (uint8_t i = reg & 15; i > 0; i--) { //restores preserved registers
+		x86_64_enc_pop_reg(bin, bn, (i - 1) | 48); //pop [i - 1]
+		dec_stack(8);
+	}
+}
+
+void x86_64_enc_func_call_void(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uint64_t* reln, void (*dec_stack) (uint8_t), uint8_t reg, uint8_t* str, uint8_t len, uint16_t sz) {
+	rel[*reln].str = malloc(len);
+	memcpy(rel[*reln].str, str, len);
+	rel[*reln].len = len;
+	rel[*reln].addr = *bn;
+	rel[*reln].typ = 3;
+	*reln = *reln + 1;
+	
+	reg = x86_64_inc_reg(reg);
+	
+	x86_64_enc_call(bin, bn, 0); //call [func]
+	if (sz) { //removes argument stack
+		x86_64_enc_add_reg_imm(bin, bn, 52, sz); //add rsp, [sz]
+		dec_stack(sz);
+	}
+	for (uint8_t i = reg & 15; i > 0; i--) { //restores preserved registers
 		x86_64_enc_pop_reg(bin, bn, (i - 1) | 48); //pop [i - 1]
 		dec_stack(8);
 	}

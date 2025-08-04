@@ -1055,7 +1055,7 @@ void x86_64_enc_or_reg_imm(uint8_t* bin, uint64_t* bn, uint8_t r, uint64_t k) {
 	if ((r & 15) == 0) {
 		x86_64_prfx_leg(bin, bn, 0, r);
 		x86_64_prfx_rex(bin, bn, 0, 0, r);
-		x86_64_inst_byt(bin, bn, 4 + !!(r & 48)); //op
+		x86_64_inst_byt(bin, bn, 12 + !!(r & 48)); //op
 		x86_64_inst_lcp(bin, bn, r, k); //imm
 	}
 	else if ((r & 48) && k < 256) {
@@ -1830,7 +1830,7 @@ void x86_64_enc_adc_reg_imm(uint8_t* bin, uint64_t* bn, uint8_t r, uint64_t k) {
 	if ((r & 15) == 0) {
 		x86_64_prfx_leg(bin, bn, 0, r);
 		x86_64_prfx_rex(bin, bn, 0, 0, r);
-		x86_64_inst_byt(bin, bn, 4 + !!(r & 48)); //op
+		x86_64_inst_byt(bin, bn, 20 + !!(r & 48)); //op
 		x86_64_inst_lcp(bin, bn, r, k); //imm
 	}
 	else if ((r & 48) && k < 256) {
@@ -2605,7 +2605,7 @@ void x86_64_enc_sbb_reg_imm(uint8_t* bin, uint64_t* bn, uint8_t r, uint64_t k) {
 	if ((r & 15) == 0) {
 		x86_64_prfx_leg(bin, bn, 0, r);
 		x86_64_prfx_rex(bin, bn, 0, 0, r);
-		x86_64_inst_byt(bin, bn, 4 + !!(r & 48)); //op
+		x86_64_inst_byt(bin, bn, 28 + !!(r & 48)); //op
 		x86_64_inst_lcp(bin, bn, r, k); //imm
 	}
 	else if ((r & 48) && k < 256) {
@@ -3380,7 +3380,7 @@ void x86_64_enc_and_reg_imm(uint8_t* bin, uint64_t* bn, uint8_t r, uint64_t k) {
 	if ((r & 15) == 0) {
 		x86_64_prfx_leg(bin, bn, 0, r);
 		x86_64_prfx_rex(bin, bn, 0, 0, r);
-		x86_64_inst_byt(bin, bn, 4 + !!(r & 48)); //op
+		x86_64_inst_byt(bin, bn, 36 + !!(r & 48)); //op
 		x86_64_inst_lcp(bin, bn, r, k); //imm
 	}
 	else if ((r & 48) && k < 256) {
@@ -4155,7 +4155,7 @@ void x86_64_enc_sub_reg_imm(uint8_t* bin, uint64_t* bn, uint8_t r, uint64_t k) {
 	if ((r & 15) == 0) {
 		x86_64_prfx_leg(bin, bn, 0, r);
 		x86_64_prfx_rex(bin, bn, 0, 0, r);
-		x86_64_inst_byt(bin, bn, 4 + !!(r & 48)); //op
+		x86_64_inst_byt(bin, bn, 44 + !!(r & 48)); //op
 		x86_64_inst_lcp(bin, bn, r, k); //imm
 	}
 	else if ((r & 48) && k < 256) {
@@ -4930,7 +4930,7 @@ void x86_64_enc_xor_reg_imm(uint8_t* bin, uint64_t* bn, uint8_t r, uint64_t k) {
 	if ((r & 15) == 0) {
 		x86_64_prfx_leg(bin, bn, 0, r);
 		x86_64_prfx_rex(bin, bn, 0, 0, r);
-		x86_64_inst_byt(bin, bn, 4 + !!(r & 48)); //op
+		x86_64_inst_byt(bin, bn, 52 + !!(r & 48)); //op
 		x86_64_inst_lcp(bin, bn, r, k); //imm
 	}
 	else if ((r & 48) && k < 256) {
@@ -5705,7 +5705,7 @@ void x86_64_enc_cmp_reg_imm(uint8_t* bin, uint64_t* bn, uint8_t r, uint64_t k) {
 	if ((r & 15) == 0) {
 		x86_64_prfx_leg(bin, bn, 0, r);
 		x86_64_prfx_rex(bin, bn, 0, 0, r);
-		x86_64_inst_byt(bin, bn, 4 + !!(r & 48)); //op
+		x86_64_inst_byt(bin, bn, 60 + !!(r & 48)); //op
 		x86_64_inst_lcp(bin, bn, r, k); //imm
 	}
 	else if ((r & 48) && k < 256) {
