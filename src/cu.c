@@ -156,7 +156,7 @@ void (*cu_enc_func_call_64) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, v
 
 void (*cu_enc_func_call_void) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, void (*inc_stack) (uint8_t), uint8_t, uint8_t*, uint8_t, uint16_t);
 
-void (*cu_enc_func_ret) (uint8_t*, uint64_t*);
+void (*cu_enc_func_ret) (uint8_t*, uint64_t*, uint16_t);
 
 void (*cu_enc_add) (uint8_t*, uint64_t*, void (*dec_stack) (uint8_t), uint8_t);
 
@@ -564,6 +564,31 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 		}
 	}
 	
+	uint16_t count_stack(uint8_t scop) {
+		uint16_t x = 0;
+		for (uint16_t i = stack_n - 1; i > 0; i--) {
+			if (stack[i].scop != scop) {
+				break;
+			}
+			else {
+				if (stack[i].type == 4 || stack[i].type == 8 || stack[i].ref) {
+					x = x + 8;
+				}
+				else if (stack[i].type == 1 || stack[i].type == 5) {
+					x = x + 1;
+				}
+				else if (stack[i].type == 2 || stack[i].type == 6) {
+					x = x + 2;
+				}
+				else if (stack[i].type == 3 || stack[i].type == 7) {
+					x = x + 4;
+				}
+				stack_n = stack_n - 1;
+			}
+		}
+		return x;
+	}
+	
 	void rem_stack(uint8_t scop) {
 		for (uint16_t i = stack_n - 1; i > 0; i--) {
 			if (stack[i].scop != scop) {
@@ -629,7 +654,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 		if (stack_src) {
 			if (!stack[stack_src].scop && ref_src) {
 				cu_enc_glo_ref(func_bin[braces_n], &(func_bn[braces_n]), func_rel[braces_n], &(func_reln[braces_n]), inc_stack, reg[call_n], stack[stack_src].str, stack[stack_src].len);
-				ref_src;
+				ref_src = 0;
 			}
 			else if (!stack[stack_src].scop) {
 				if (stack[stack_src].ref) {
@@ -1006,7 +1031,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			adv_assign();
 		}
 		if (ret_dst) {
-			cu_enc_func_ret(func_bin[braces_n], &(func_bn[braces_n]));
+			cu_enc_func_ret(func_bin[braces_n], &(func_bn[braces_n]), 0);
 			ret_dst = 0;
 		}
 		else if (dref_dst) {
@@ -1699,7 +1724,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				//error
 			}
 			else {
-				cu_enc_func_ret(func_bin[braces_n], &(func_bn[braces_n]));
+				cu_enc_func_ret(func_bin[braces_n], &(func_bn[braces_n]), count_stack(braces_n));
 				dec_stack(8); //size of return address
 				rem_stack(braces_n);
 			}

@@ -60,7 +60,7 @@ uint8_t x86_64_inc_reg(uint8_t reg) {
 
 /*	function stack structure
 
-calling a function, 	return address on top of the stack
+calling a function,8return address on top of the stack
 						nth parameter
 						...
 						3rd parameter
@@ -106,7 +106,7 @@ void x86_64_enc_loc_ref(uint8_t* bin, uint64_t* bn, void (*inc_stack) (uint8_t),
 		x86_64_enc_push_reg(bin, bn, reg | 48); //push [reg]
 		inc_stack(8);
 	}
-	x86_64_enc_lea_reg_addr(bin, bn, reg | 48, 52, indx, 0, 0); //lea [reg], (rsp, [indx])
+	x86_64_enc_lea_reg_addr(bin, bn, reg | 48, 52, 0, 0, indx); //lea [reg], (rsp, [indx])
 }
 
 void x86_64_enc_loc_dec_8(uint8_t* bin, uint64_t* bn) {
@@ -185,19 +185,18 @@ void x86_64_enc_loc_str_64(uint8_t* bin, uint64_t* bn, uint32_t indx) {
 }
 
 void x86_64_enc_glo_ref(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uint64_t* reln, void (*inc_stack) (uint8_t), uint8_t reg, uint8_t* str, uint8_t len) {
+	reg = x86_64_inc_reg(reg);
+	if (reg > 15) {
+		x86_64_enc_push_reg(bin, bn, reg | 48); //push [reg]
+		inc_stack(8);
+	}
+	
 	rel[*reln].str = malloc(len);
 	memcpy(rel[*reln].str, str, len);
 	rel[*reln].len = len;
 	rel[*reln].addr = *bn;
 	rel[*reln].typ = 4;
 	*reln = *reln + 1;
-	
-	reg = x86_64_inc_reg(reg);
-	
-	if (reg > 15) {
-		x86_64_enc_push_reg(bin, bn, reg | 48); //push [reg]
-		inc_stack(8);
-	}
 	x86_64_enc_lea_reg_addr(bin, bn, reg | 48, 117, 0, 0, 0); //lea [reg], (rip, [rel])
 }
 
@@ -627,7 +626,10 @@ void x86_64_enc_func_call_void(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel,
 	}
 }
 
-void x86_64_enc_func_ret(uint8_t* bin, uint64_t* bn) {
+void x86_64_enc_func_ret(uint8_t* bin, uint64_t* bn, uint16_t sz) {
+	if (sz) { //removes argument stack
+		x86_64_enc_add_reg_imm(bin, bn, 52, sz); //add rsp, [sz]
+	}
 	x86_64_enc_ret(bin, bn);
 }
 
