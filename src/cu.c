@@ -1394,7 +1394,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			if (li) {
 				next_str();
 			}
-			if (mod == 1 && fx[fi + 1] != ' ' && fx[fi + 1] != '(') { //reference
+			if ((mod == 1 || dref_dst || call_n) && fx[fi + 1] != ' ' && fx[fi + 1] != '(') { //reference
 				ref_src = 1;
 			}
 			else if (mod == 1 || dref_dst || call_n) { //bitwise and
@@ -1642,7 +1642,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			}
 		}
 		else if ((fx[fi] == ')') && !c && !char_flag && !str_flag) { 
-			if (li && op[prnths_n - 1] == 25) {
+			if (li && ((op[prnths_n - 1] == 25) || (op[prnths_n - 2] == 25))) {
 				if (arg_n[call_n] < stack[func_call[call_n]].mem_n) {
 					load_src(find_stack(lex));
 					adv_assign();
