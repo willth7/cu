@@ -210,7 +210,7 @@ struct cu_data_s {
 	uint8_t dim_n;			//number of dimensions, 0 if not array
 	struct cu_data_s* mem;	//members/parameters
 	uint8_t mem_n;			//number of members/parameters
-	uint8_t func;			//function flag
+	uint8_t flag;			//flag, 0 for variable, 1 for function, 2 for parameter
 	uint32_t indx;		 	//index into stack
 	uint8_t scop;		 	//level of scope, number of braces
 	uint8_t ref; 			//level of reference
@@ -550,7 +550,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 	
 	void inc_stack(uint8_t sz) {
 		for (uint16_t i = 1; i < stack_n; i++) {
-			if (stack[i].scop && !(stack[i].func)) {
+			if (stack[i].scop && (stack[i].flag != 1)) {
 				stack[i].indx = stack[i].indx + sz;
 			}
 		}
@@ -558,7 +558,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 	
 	void dec_stack(uint8_t sz) {
 		for (uint16_t i = 1; i < stack_n; i++) {
-			if (stack[i].scop && !(stack[i].func)) {
+			if (stack[i].scop && (stack[i].flag != 1)) {
 				stack[i].indx = stack[i].indx - sz;
 			}
 		}
@@ -567,7 +567,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 	uint16_t count_stack(uint8_t scop) {
 		uint16_t x = 0;
 		for (uint16_t i = stack_n - 1; i > 0; i--) {
-			if (stack[i].scop != scop) {
+			if ((stack[i].scop != scop) || (stack[i].flag == 2)) {
 				break;
 			}
 			else {
@@ -1138,7 +1138,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				stack[stack_n].type = key;
 				stack[stack_n].dim_n = 0;
 				stack[stack_n].mem_n = 0;
-				stack[stack_n].func = 0;
+				stack[stack_n].flag = 2;
 				stack[stack_n].indx = 0;
 				stack[stack_n].scop = braces_n + 1;
 				stack[stack_n].ref = ref;
@@ -1174,7 +1174,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				stack[stack_n].type = key;
 				stack[stack_n].dim_n = 0;
 				stack[stack_n].mem_n = 0;
-				stack[stack_n].func = 1;
+				stack[stack_n].flag = 1;
 				stack[stack_n].indx = 0;
 				stack[stack_n].scop = braces_n;
 				stack[stack_n].ref = ref;
@@ -1198,7 +1198,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				stack[stack_n].type = key;
 				stack[stack_n].dim_n = 0;
 				stack[stack_n].mem_n = 0;
-				stack[stack_n].func = 0;
+				stack[stack_n].flag = 0;
 				stack[stack_n].indx = 0;
 				stack[stack_n].scop = braces_n;
 				stack[stack_n].ref = ref;
@@ -1606,6 +1606,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				*e = -1;
 			}
 			if (func_dec) {
+				rem_stack(braces_n + 1);
 				func_dec = 0;
 				para_n = 0;
 			}
@@ -1629,7 +1630,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 					printf("[%s, %lu] error: '%s' has not been declared\n", path, ln, lex);
 					*e = -1;
 				}
-				else if (!(stack[func_call[call_n]].func)) {
+				else if (stack[func_call[call_n]].flag != 1) {
 					printf("[%s, %lu] error: '%s' is not a function\n", path, ln, stack[func_call[call_n]].str);
 					*e = -1;
 				}
