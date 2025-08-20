@@ -652,7 +652,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 	
 	void load_src(uint16_t stack_src) {
 		if (stack_src) {
-			if (!stack[stack_src].scop && ref_src) {
+			if ((!stack[stack_src].scop && ref_src) || (stack[stack_src].flag == 1)) {
 				cu_enc_glo_ref(func_bin[braces_n], &(func_bn[braces_n]), func_rel[braces_n], &(func_reln[braces_n]), inc_stack, reg[call_n], stack[stack_src].str, stack[stack_src].len);
 				ref_src = 0;
 			}
