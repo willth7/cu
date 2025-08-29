@@ -160,6 +160,8 @@ void (*cu_enc_func_ret) (uint8_t*, uint64_t*, uint16_t);
 
 void (*cu_enc_cond_if) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*);
 
+void (*cu_enc_cond_else) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*);
+
 void (*cu_enc_add) (uint8_t*, uint64_t*, void (*dec_stack) (uint8_t), uint8_t);
 
 void (*cu_enc_sub) (uint8_t*, uint64_t*, void (*dec_stack) (uint8_t), uint8_t);
@@ -454,13 +456,13 @@ uint8_t cu_str_key(uint8_t* str) {
 	else if (!strcmp(str, "if")) {
 		return 10;
 	}
-	else if (!strcmp(str, "while")) {
+	else if (!strcmp(str, "else")) {
 		return 11;
 	}
 	else if (!strcmp(str, "for")) {
 		return 12;
 	}
-	else if (!strcmp(str, "else")) {
+	else if (!strcmp(str, "while")) {
 		return 13;
 	}
 	
@@ -499,7 +501,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 	uint8_t str_flag = 0;			//string flag
 	uint16_t str_n = 0;				//number of string immediates
 	uint16_t if_n = 0;				//number of if statements
-	
+	uint16_t else_n = 0;			//number of if statements
 	
 	uint8_t mod = 0;				//current mode
 	// 0 - declaration
@@ -529,6 +531,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 	uint8_t ref_src = 0;			//reference flag
 	uint8_t ret_dst = 0;			//return flag
 	uint8_t if_dst[256] = {};		//if statement flag
+	uint8_t else_dst[256] = {};		//else statament flag
 	
 	uint8_t func_call[256] = {};	//function call flag
 	uint8_t arg_n[256] = {};		//number of arguments
@@ -1710,7 +1713,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				next_str();
 			}
 			braces_n = braces_n + 1;
-			if (if_dst[braces_n - 1] == 1) {
+			if (if_dst[braces_n - 1]) {
 				func_sym[braces_n][func_symn[braces_n]].str = malloc(11);
 				memcpy(func_sym[braces_n][func_symn[braces_n]].str, "__if_$$_$$_", 11);
 				func_sym[braces_n][func_symn[braces_n]].str[5] = cu_int_hex_char(if_n >> 4);
@@ -1732,7 +1735,33 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				if_n = if_n + 1;
 				
 				cu_enc_cond_if(func_bin[braces_n - 1], &(func_bn[braces_n - 1]), func_rel[braces_n - 1], &(func_reln[braces_n - 1]));
+				if_dst[braces_n - 1] = 0;
 				mod = 0;
+				inc_stack(8); //size of return address
+			}
+			else if (key == 11) {
+				func_sym[braces_n][func_symn[braces_n]].str = malloc(13);
+				memcpy(func_sym[braces_n][func_symn[braces_n]].str, "__else_$$_$$_", 13);
+				func_sym[braces_n][func_symn[braces_n]].str[7] = cu_int_hex_char(else_n >> 4);
+				func_sym[braces_n][func_symn[braces_n]].str[8] = cu_int_hex_char(else_n);
+				func_sym[braces_n][func_symn[braces_n]].str[10] = cu_int_hex_char(else_n >> 12);
+				func_sym[braces_n][func_symn[braces_n]].str[11] = cu_int_hex_char(else_n >> 8);
+				func_sym[braces_n][func_symn[braces_n]].len = 13;
+				func_sym[braces_n][func_symn[braces_n]].addr = func_bn[braces_n];
+				func_sym[braces_n][func_symn[braces_n]].typ = 0;
+				func_symn[braces_n] = func_symn[braces_n] + 1;
+				
+				func_rel[braces_n - 1][func_reln[braces_n - 1]].str = malloc(13);
+				memcpy(func_rel[braces_n - 1][func_reln[braces_n - 1]].str, "__else_$$_$$_", 13);
+				func_rel[braces_n - 1][func_reln[braces_n - 1]].str[7] = cu_int_hex_char(else_n >> 4);
+				func_rel[braces_n - 1][func_reln[braces_n - 1]].str[8] = cu_int_hex_char(else_n);
+				func_rel[braces_n - 1][func_reln[braces_n - 1]].str[10] = cu_int_hex_char(else_n >> 12);
+				func_rel[braces_n - 1][func_reln[braces_n - 1]].str[11] = cu_int_hex_char(else_n >> 8);
+				func_rel[braces_n - 1][func_reln[braces_n - 1]].len = 13;
+				else_n = else_n + 1;
+				
+				cu_enc_cond_else(func_bin[braces_n - 1], &(func_bn[braces_n - 1]), func_rel[braces_n - 1], &(func_reln[braces_n - 1]));
+				key = 0;
 				inc_stack(8); //size of return address
 			}
 			else if (func_dec) {
@@ -1926,8 +1955,9 @@ int8_t main(int32_t argc, int8_t** argv) {
 		cu_enc_func_call_32 = x86_64_enc_func_call_32;
 		cu_enc_func_call_64 = x86_64_enc_func_call_64;
 		cu_enc_func_call_void = x86_64_enc_func_call_void;
-		cu_enc_cond_if = x86_64_enc_cond_if;
 		cu_enc_func_ret = x86_64_enc_func_ret;
+		cu_enc_cond_if = x86_64_enc_cond_if;
+		cu_enc_cond_else = x86_64_enc_cond_else;
 		cu_enc_add = x86_64_enc_add;
 		cu_enc_sub = x86_64_enc_sub;
 		cu_enc_inc = x86_64_enc_inc;

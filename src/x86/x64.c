@@ -644,6 +644,16 @@ void x86_64_enc_cond_if(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uint64
 	x86_64_enc_call(bin, bn, 0); //call [str]
 }
 
+void x86_64_enc_cond_else(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uint64_t* reln) {
+	x86_64_enc_jne_imm(bin, bn, 5); //jne 5
+	
+	rel[*reln].addr = *bn;
+	rel[*reln].typ = 3;
+	*reln = *reln + 1;
+	
+	x86_64_enc_call(bin, bn, 0); //call [str]
+}
+
 void x86_64_enc_add(uint8_t* bin, uint64_t* bn, void (*dec_stack) (uint8_t), uint8_t reg) {
 	uint8_t r0 = x86_64_inc_reg(reg - 1);
 	uint8_t r1 = x86_64_inc_reg(reg);
