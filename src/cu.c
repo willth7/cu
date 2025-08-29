@@ -158,6 +158,8 @@ void (*cu_enc_func_call_void) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*,
 
 void (*cu_enc_func_ret) (uint8_t*, uint64_t*, uint16_t);
 
+void (*cu_enc_cond_if) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*);
+
 void (*cu_enc_add) (uint8_t*, uint64_t*, void (*dec_stack) (uint8_t), uint8_t);
 
 void (*cu_enc_sub) (uint8_t*, uint64_t*, void (*dec_stack) (uint8_t), uint8_t);
@@ -496,6 +498,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 	uint8_t char_flag = 0;			//character flag
 	uint8_t str_flag = 0;			//string flag
 	uint16_t str_n = 0;				//number of string immediates
+	uint16_t if_n = 0;				//number of if statements
 	
 	
 	uint8_t mod = 0;				//current mode
@@ -525,6 +528,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 	uint8_t dref_src = 0;			//dereference source flag
 	uint8_t ref_src = 0;			//reference flag
 	uint8_t ret_dst = 0;			//return flag
+	uint8_t if_dst[256] = {};		//if statement flag
 	
 	uint8_t func_call[256] = {};	//function call flag
 	uint8_t arg_n[256] = {};		//number of arguments
@@ -583,7 +587,6 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				else if (stack[i].type == 3 || stack[i].type == 7) {
 					x = x + 4;
 				}
-				stack_n = stack_n - 1;
 			}
 		}
 		return x;
@@ -591,10 +594,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 	
 	void rem_stack(uint8_t scop) {
 		for (uint16_t i = stack_n - 1; i > 0; i--) {
-			if (stack[i].scop != scop) {
-				break;
-			}
-			else {
+			if (stack[i].scop == scop) {
 				if (stack[i].type == 4 || stack[i].type == 8 || stack[i].ref) {
 					dec_stack(8);
 				}
@@ -1031,7 +1031,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			adv_assign();
 		}
 		if (ret_dst) {
-			cu_enc_func_ret(func_bin[braces_n], &(func_bn[braces_n]), 0);
+			cu_enc_func_ret(func_bin[braces_n], &(func_bn[braces_n]), count_stack(braces_n));
 			ret_dst = 0;
 		}
 		else if (dref_dst) {
@@ -1249,7 +1249,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 	}
 	
 	for (uint64_t fi = 0; fi < fs.st_size; fi++) {
-		//printf("[%s, %lu] %c: %u\n", path, ln, fx[fi], prnths_n);
+		//printf("[%s, %lu] %c, %u\n", path, ln, fx[fi], stack_n);
 		
 		if (((fx[fi] >= 97 && fx[fi] <= 122) || (fx[fi] >= 48 && fx[fi] <= 57)  || (fx[fi] >= 65 && fx[fi] <= 90) || fx[fi] == '_' || (fx[fi] == '-' && fx[fi + 1] != ' ' && fx[fi + 1] != '-' && fx[fi + 1] != '-')) && !c && !char_flag && !str_flag) { //string
 			lex[li] = fx[fi];
@@ -1617,7 +1617,12 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 		}
 		else if ((fx[fi] == '(') && !c && !char_flag && !str_flag) {
 			prnths_n = prnths_n + 1;
-			if (li && key) { //function declaration
+			if (key == 10) { //if statement
+				key = 0;
+				mod = 1;
+				if_dst[braces_n] = 1;
+			}
+			else if (li && key) { //function declaration
 				func_dec = 1;
 				next_str();
 			}
@@ -1705,7 +1710,32 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				next_str();
 			}
 			braces_n = braces_n + 1;
-			if (func_dec) {
+			if (if_dst[braces_n - 1] == 1) {
+				func_sym[braces_n][func_symn[braces_n]].str = malloc(11);
+				memcpy(func_sym[braces_n][func_symn[braces_n]].str, "__if_$$_$$_", 11);
+				func_sym[braces_n][func_symn[braces_n]].str[5] = cu_int_hex_char(if_n >> 4);
+				func_sym[braces_n][func_symn[braces_n]].str[6] = cu_int_hex_char(if_n);
+				func_sym[braces_n][func_symn[braces_n]].str[8] = cu_int_hex_char(if_n >> 12);
+				func_sym[braces_n][func_symn[braces_n]].str[9] = cu_int_hex_char(if_n >> 8);
+				func_sym[braces_n][func_symn[braces_n]].len = 11;
+				func_sym[braces_n][func_symn[braces_n]].addr = func_bn[braces_n];
+				func_sym[braces_n][func_symn[braces_n]].typ = 0;
+				func_symn[braces_n] = func_symn[braces_n] + 1;
+				
+				func_rel[braces_n - 1][func_reln[braces_n - 1]].str = malloc(11);
+				memcpy(func_rel[braces_n - 1][func_reln[braces_n - 1]].str, "__if_$$_$$_", 11);
+				func_rel[braces_n - 1][func_reln[braces_n - 1]].str[5] = cu_int_hex_char(if_n >> 4);
+				func_rel[braces_n - 1][func_reln[braces_n - 1]].str[6] = cu_int_hex_char(if_n);
+				func_rel[braces_n - 1][func_reln[braces_n - 1]].str[8] = cu_int_hex_char(if_n >> 12);
+				func_rel[braces_n - 1][func_reln[braces_n - 1]].str[9] = cu_int_hex_char(if_n >> 8);
+				func_rel[braces_n - 1][func_reln[braces_n - 1]].len = 11;
+				if_n = if_n + 1;
+				
+				cu_enc_cond_if(func_bin[braces_n - 1], &(func_bn[braces_n - 1]), func_rel[braces_n - 1], &(func_reln[braces_n - 1]));
+				mod = 0;
+				inc_stack(8); //size of return address
+			}
+			else if (func_dec) {
 				func_dec = 0;
 				func_sym[braces_n][func_symn[braces_n]].str = malloc(stack[(stack_n - 1) - para_n].len);
 				memcpy(func_sym[braces_n][func_symn[braces_n]].str, stack[(stack_n - 1) - para_n].str, stack[(stack_n - 1) - para_n].len);
@@ -1726,8 +1756,8 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			}
 			else {
 				cu_enc_func_ret(func_bin[braces_n], &(func_bn[braces_n]), count_stack(braces_n));
-				dec_stack(8); //size of return address
 				rem_stack(braces_n);
+				dec_stack(8); //size of return address
 			}
 			braces_n = braces_n - 1;
 		}
@@ -1896,6 +1926,7 @@ int8_t main(int32_t argc, int8_t** argv) {
 		cu_enc_func_call_32 = x86_64_enc_func_call_32;
 		cu_enc_func_call_64 = x86_64_enc_func_call_64;
 		cu_enc_func_call_void = x86_64_enc_func_call_void;
+		cu_enc_cond_if = x86_64_enc_cond_if;
 		cu_enc_func_ret = x86_64_enc_func_ret;
 		cu_enc_add = x86_64_enc_add;
 		cu_enc_sub = x86_64_enc_sub;

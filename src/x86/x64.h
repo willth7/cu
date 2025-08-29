@@ -110,6 +110,8 @@ void x86_64_enc_func_call_void (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*
 
 void x86_64_enc_func_ret (uint8_t*, uint64_t*, uint16_t);
 
+void x86_64_enc_cond_if(uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*);
+
 void x86_64_enc_add(uint8_t*, uint64_t*, void (*dec_stack) (uint8_t), uint8_t);
 
 void x86_64_enc_sub(uint8_t*, uint64_t*, void (*dec_stack) (uint8_t), uint8_t);
