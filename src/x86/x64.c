@@ -633,6 +633,10 @@ void x86_64_enc_func_ret(uint8_t* bin, uint64_t* bn, uint16_t sz) {
 	x86_64_enc_ret(bin, bn);
 }
 
+void x86_64_enc_inc_sp(uint8_t* bin, uint64_t* bn, uint16_t sz) {
+	x86_64_enc_add_reg_imm(bin, bn, 52, sz); //add rsp, [sz]
+}
+
 void x86_64_enc_cond_if(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uint64_t* reln) {
 	x86_64_enc_cmp_reg_imm(bin, bn, 48, 0); //cmp rax, 0
 	x86_64_enc_je_imm(bin, bn, 10); //je 10
@@ -657,6 +661,29 @@ void x86_64_enc_cond_else(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uint
 	*reln = *reln + 1;
 	
 	x86_64_enc_call(bin, bn, 0); //call [str]
+}
+
+void x86_64_enc_cond_for(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uint64_t* reln) {
+	x86_64_enc_cmp_reg_imm(bin, bn, 48, 0); //cmp rax, 0
+	
+	rel[*reln].addr = *bn;
+	rel[*reln].typ = 3;
+	
+	x86_64_enc_je_imm(bin, bn, 256); //je [end]
+	
+	rel[*reln + 1].addr = *bn;
+	rel[*reln + 1].typ = 3;
+	*reln = *reln + 2;
+	
+	x86_64_enc_call(bin, bn, 0); //call [cond]
+}
+
+void x86_64_enc_cond_post_for(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uint64_t* reln) {
+	rel[*reln].addr = *bn;
+	rel[*reln].typ = 3;
+	*reln = *reln + 1;
+	
+	x86_64_enc_jmp(bin, bn, 256); //jmp [loop]
 }
 
 void x86_64_enc_add(uint8_t* bin, uint64_t* bn, void (*dec_stack) (uint8_t), uint8_t reg) {

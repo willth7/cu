@@ -29,7 +29,7 @@
  - functions
 	- function pointers
  - conditionals
-	- for loops
+	- breaks
  - arrays
 	- array declaration
  	- single and multi dimensional
@@ -154,9 +154,15 @@ void (*cu_enc_func_call_void) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*,
 
 void (*cu_enc_func_ret) (uint8_t*, uint64_t*, uint16_t);
 
+void (*cu_enc_inc_sp) (uint8_t*, uint64_t*, uint16_t);
+
 void (*cu_enc_cond_if) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*);
 
 void (*cu_enc_cond_else) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*);
+
+void (*cu_enc_cond_for) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*);
+
+void (*cu_enc_cond_post_for) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*);
 
 void (*cu_enc_add) (uint8_t*, uint64_t*, void (*dec_stack) (uint8_t), uint8_t);
 
@@ -455,10 +461,10 @@ uint8_t cu_str_key(uint8_t* str) {
 	else if (!strcmp(str, "else")) {
 		return 11;
 	}
-	else if (!strcmp(str, "while")) {
+	else if (!strcmp(str, "for")) {
 		return 12;
 	}
-	else if (!strcmp(str, "for")) {
+	else if (!strcmp(str, "while")) {
 		return 13;
 	}
 	else if (!strcmp(str, "break")) {
@@ -494,12 +500,13 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 	uint8_t c = 0;					//comment flag
 	uint8_t char_flag = 0;			//character flag
 	uint8_t str_flag = 0;			//string flag
+	uint8_t for_flag = 0;			//for statement variable declaration flag
 	uint16_t str_n = 0;				//number of string immediates
 	uint16_t if_n = 0;				//number of if statements
 	uint16_t else_n = 0;			//number of else statements
 	uint16_t cond_n = 0;			//number of conditionals
-	uint16_t while_n = 0;			//number of while statements
 	uint16_t for_n = 0;				//number of for statements
+	uint16_t while_n = 0;			//number of while statements
 	
 	uint8_t mod = 0;				//current mode
 	// 0 - declaration
@@ -1230,6 +1237,15 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				key = 0;
 			}
 			else {
+				if (for_dst[braces_n]) {
+					if (for_dst[braces_n] == 1) {
+						for_flag = 1;
+					}
+					else {
+						printf("[%s, %lu] error: cannot declare variable here\n", path, ln, lex);
+						*e = -1;
+					}
+				}
 				stack[stack_n].str = malloc(li);
 				memcpy(stack[stack_n].str, lex, li);
 				stack[stack_n].len = li;
@@ -1238,12 +1254,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				stack[stack_n].mem_n = 0;
 				stack[stack_n].flag = 0;
 				stack[stack_n].indx = 0;
-				if (for_dst[braces_n]) {
-					stack[stack_n].scop = braces_n + 1;
-				}
-				else {
-					stack[stack_n].scop = braces_n;
-				}
+				stack[stack_n].scop = braces_n;
 				stack[stack_n].ref = ref;
 				if (key == 4 || key == 8 || ref) {
 					if (braces_n) {
@@ -1659,34 +1670,37 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				mod = 1;
 				
 				func_sym[braces_n][func_symn[braces_n]].str = malloc(13);
-				memcpy(func_sym[braces_n][func_symn[braces_n]].str, "__inif_$$_$$_", 13);
+				memcpy(func_sym[braces_n][func_symn[braces_n]].str, "__loop_$$_$$_", 13);
 				func_sym[braces_n][func_symn[braces_n]].str[7] = cu_int_hex_char(for_n >> 4);
 				func_sym[braces_n][func_symn[braces_n]].str[8] = cu_int_hex_char(for_n);
 				func_sym[braces_n][func_symn[braces_n]].str[10] = cu_int_hex_char(for_n >> 12);
 				func_sym[braces_n][func_symn[braces_n]].str[11] = cu_int_hex_char(for_n >> 8);
 				func_sym[braces_n][func_symn[braces_n]].len = 13;
+				func_sym[braces_n][func_symn[braces_n]].addr = func_bn[braces_n];
 				func_sym[braces_n][func_symn[braces_n]].typ = 0;
-				
-				func_rel[braces_n][func_reln[braces_n]].str = malloc(14);
-				memcpy(func_rel[braces_n][func_reln[braces_n]].str, "__for_$$_$$_", 12);
-				func_rel[braces_n][func_reln[braces_n]].str[6] = cu_int_hex_char(for_n >> 4);
-				func_rel[braces_n][func_reln[braces_n]].str[7] = cu_int_hex_char(for_n);
-				func_rel[braces_n][func_reln[braces_n]].str[9] = cu_int_hex_char(for_n >> 12);
-				func_rel[braces_n][func_reln[braces_n]].str[10] = cu_int_hex_char(for_n >> 8);
-				func_rel[braces_n][func_reln[braces_n]].len = 12;
+				func_symn[braces_n] = func_symn[braces_n] + 1;
 			}
 			else if (for_dst[braces_n] == 2) {
 				for_dst[braces_n] = 3;
 				mod = 0;
 				
-				func_rel[braces_n][func_reln[braces_n]].str = malloc(13);
-				memcpy(func_rel[braces_n][func_reln[braces_n]].str, "__inif_$$_$$_", 13);
-				func_rel[braces_n][func_reln[braces_n]].str[7] = cu_int_hex_char(for_n >> 4);
-				func_rel[braces_n][func_reln[braces_n]].str[8] = cu_int_hex_char(for_n);
-				func_rel[braces_n][func_reln[braces_n]].str[10] = cu_int_hex_char(for_n >> 12);
-				func_rel[braces_n][func_reln[braces_n]].str[11] = cu_int_hex_char(for_n >> 8);
-				func_rel[braces_n][func_reln[braces_n]].len = 13;
-					
+				func_rel[braces_n][func_reln[braces_n]].str = malloc(12);
+				memcpy(func_rel[braces_n][func_reln[braces_n]].str, "__end_$$_$$_", 12);
+				func_rel[braces_n][func_reln[braces_n]].str[6] = cu_int_hex_char(for_n >> 4);
+				func_rel[braces_n][func_reln[braces_n]].str[7] = cu_int_hex_char(for_n);
+				func_rel[braces_n][func_reln[braces_n]].str[9] = cu_int_hex_char(for_n >> 12);
+				func_rel[braces_n][func_reln[braces_n]].str[10] = cu_int_hex_char(for_n >> 8);
+				func_rel[braces_n][func_reln[braces_n]].len = 12;
+				
+				func_rel[braces_n][func_reln[braces_n] + 1].str = malloc(12);
+				memcpy(func_rel[braces_n][func_reln[braces_n] + 1].str, "__for_$$_$$_", 12);
+				func_rel[braces_n][func_reln[braces_n] + 1].str[6] = cu_int_hex_char(for_n >> 4);
+				func_rel[braces_n][func_reln[braces_n] + 1].str[7] = cu_int_hex_char(for_n);
+				func_rel[braces_n][func_reln[braces_n] + 1].str[9] = cu_int_hex_char(for_n >> 12);
+				func_rel[braces_n][func_reln[braces_n] + 1].str[10] = cu_int_hex_char(for_n >> 8);
+				func_rel[braces_n][func_reln[braces_n] + 1].len = 12;
+				
+				cu_enc_cond_for(func_bin[braces_n], &(func_bn[braces_n]), func_rel[braces_n], &(func_reln[braces_n]));
 			}
 			else if (for_dst[braces_n] == 3) {
 				printf("[%s, %lu] error: unexpected semi-colon\n", path, ln);
@@ -1707,7 +1721,12 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				if_dst[braces_n] = 1;
 				else_dst[braces_n] = 1;
 			}
-			else if (key == 12) { //while statement
+			else if (key == 12) { //for statement
+				key = 0;
+				mod = 0;
+				for_dst[braces_n] = 1;
+			}
+			else if (key == 13) { //while statement
 				func_sym[braces_n][func_symn[braces_n]].str = malloc(13);
 				memcpy(func_sym[braces_n][func_symn[braces_n]].str, "__init_$$_$$_", 13);
 				func_sym[braces_n][func_symn[braces_n]].str[7] = cu_int_hex_char(while_n >> 4);
@@ -1722,11 +1741,6 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				key = 0;
 				mod = 1;
 				while_dst[braces_n] = 1;
-			}
-			else if (key == 13) { //for statement
-				key = 0;
-				mod = 0;
-				for_dst[braces_n] = 1;
 			}
 			else if (li && key) { //function declaration
 				func_dec = 1;
@@ -1898,6 +1912,50 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				key = 0;
 				inc_stack(8); //size of return address
 			}
+			else if (for_dst[braces_n - 1]) {
+				if (for_dst[braces_n - 1] == 3) {
+					func_sym[braces_n][func_symn[braces_n]].str = malloc(12);
+					memcpy(func_sym[braces_n][func_symn[braces_n]].str, "__for_$$_$$_", 12);
+					func_sym[braces_n][func_symn[braces_n]].str[6] = cu_int_hex_char(for_n >> 4);
+					func_sym[braces_n][func_symn[braces_n]].str[7] = cu_int_hex_char(for_n);
+					func_sym[braces_n][func_symn[braces_n]].str[9] = cu_int_hex_char(for_n >> 12);
+					func_sym[braces_n][func_symn[braces_n]].str[10] = cu_int_hex_char(for_n >> 8);
+					func_sym[braces_n][func_symn[braces_n]].len = 12;
+					func_sym[braces_n][func_symn[braces_n]].addr = func_bn[braces_n];
+					func_sym[braces_n][func_symn[braces_n]].typ = 0;
+					func_symn[braces_n] = func_symn[braces_n] + 1;
+					
+					func_rel[braces_n - 1][func_reln[braces_n - 1]].str = malloc(13);
+					memcpy(func_rel[braces_n - 1][func_reln[braces_n - 1]].str, "__loop_$$_$$_", 13);
+					func_rel[braces_n - 1][func_reln[braces_n - 1]].str[7] = cu_int_hex_char(for_n >> 4);
+					func_rel[braces_n - 1][func_reln[braces_n - 1]].str[8] = cu_int_hex_char(for_n);
+					func_rel[braces_n - 1][func_reln[braces_n - 1]].str[10] = cu_int_hex_char(for_n >> 12);
+					func_rel[braces_n - 1][func_reln[braces_n - 1]].str[11] = cu_int_hex_char(for_n >> 8);
+					func_rel[braces_n - 1][func_reln[braces_n - 1]].len = 13;
+					
+					cu_enc_cond_post_for(func_bin[braces_n - 1], &(func_bn[braces_n - 1]), func_rel[braces_n - 1], &(func_reln[braces_n - 1]));
+					
+					func_sym[braces_n - 1][func_symn[braces_n - 1]].str = malloc(12);
+					memcpy(func_sym[braces_n - 1][func_symn[braces_n - 1]].str, "__end_$$_$$_", 12);
+					func_sym[braces_n - 1][func_symn[braces_n - 1]].str[6] = cu_int_hex_char(for_n >> 4);
+					func_sym[braces_n - 1][func_symn[braces_n - 1]].str[7] = cu_int_hex_char(for_n);
+					func_sym[braces_n - 1][func_symn[braces_n - 1]].str[9] = cu_int_hex_char(for_n >> 12);
+					func_sym[braces_n - 1][func_symn[braces_n - 1]].str[10] = cu_int_hex_char(for_n >> 8);
+					func_sym[braces_n - 1][func_symn[braces_n - 1]].len = 12;
+					func_sym[braces_n - 1][func_symn[braces_n - 1]].addr = func_bn[braces_n - 1];
+					func_sym[braces_n - 1][func_symn[braces_n - 1]].typ = 0;
+					func_symn[braces_n - 1] = func_symn[braces_n - 1] + 1;
+					for_n = for_n + 1;
+					
+					for_dst[braces_n - 1] = 0;
+					mod = 0;
+					inc_stack(8); //size of return address
+				}
+				else {
+					printf("[%s, %lu] error: not enough semi-colons\n", path, ln);
+					*e = -1;
+				}
+			}
 			else if (while_dst[braces_n - 1]) {
 				func_sym[braces_n][func_symn[braces_n]].str = malloc(14);
 				memcpy(func_sym[braces_n][func_symn[braces_n]].str, "__while_$$_$$_", 14);
@@ -1932,29 +1990,6 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				mod = 0;
 				inc_stack(8); //size of return address
 			}
-			else if (for_dst[braces_n - 1]) {
-				if (for_dst[braces_n - 1] == 3) {
-					
-					func_sym[braces_n][func_symn[braces_n]].str = malloc(12);
-					memcpy(func_sym[braces_n][func_symn[braces_n]].str, "__for_$$_$$_", 12);
-					func_sym[braces_n][func_symn[braces_n]].str[6] = cu_int_hex_char(for_n >> 4);
-					func_sym[braces_n][func_symn[braces_n]].str[7] = cu_int_hex_char(for_n);
-					func_sym[braces_n][func_symn[braces_n]].str[9] = cu_int_hex_char(for_n >> 12);
-					func_sym[braces_n][func_symn[braces_n]].str[10] = cu_int_hex_char(for_n >> 8);
-					func_sym[braces_n][func_symn[braces_n]].len = 12;
-					func_sym[braces_n][func_symn[braces_n]].addr = func_bn[braces_n];
-					func_sym[braces_n][func_symn[braces_n]].typ = 0;
-					func_symn[braces_n] = func_symn[braces_n] + 1;
-					
-					for_dst[braces_n - 1] = 0;
-					mod = 0;
-					inc_stack(8); //size of return address
-				}
-				else {
-					printf("[%s, %lu] error: not enough semi-colons\n", path, ln);
-					*e = -1;
-				}
-			}
 			else if (key == 11) {
 				printf("[%s, %lu] error: no prior if statement\n", path, ln);
 				*e = -1;
@@ -1984,6 +2019,26 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				dec_stack(8); //size of return address
 			}
 			braces_n = braces_n - 1;
+			if (for_flag) {
+				stack_n = stack_n - 1;
+				if (stack[stack_n].type == 4 || stack[stack_n].type == 8 || stack[stack_n].ref) {
+					dec_stack(8);
+					cu_enc_inc_sp(func_bin[braces_n], &(func_bn[braces_n]), 8);
+				}
+				else if (stack[stack_n].type == 1 || stack[stack_n].type == 5) {
+					dec_stack(1);
+					cu_enc_inc_sp(func_bin[braces_n], &(func_bn[braces_n]), 1);
+				}
+				else if (stack[stack_n].type == 2 || stack[stack_n].type == 6) {
+					dec_stack(2);
+					cu_enc_inc_sp(func_bin[braces_n], &(func_bn[braces_n]), 2);
+				}
+				else if (stack[stack_n].type == 3 || stack[stack_n].type == 7) {
+					dec_stack(4);
+					cu_enc_inc_sp(func_bin[braces_n], &(func_bn[braces_n]), 4);
+				}
+				for_flag = 0;
+			}
 		}
 	}
 	munmap(fx, fs.st_size);
@@ -2151,8 +2206,11 @@ int8_t main(int32_t argc, int8_t** argv) {
 		cu_enc_func_call_64 = x86_64_enc_func_call_64;
 		cu_enc_func_call_void = x86_64_enc_func_call_void;
 		cu_enc_func_ret = x86_64_enc_func_ret;
+		cu_enc_inc_sp = x86_64_enc_inc_sp;
 		cu_enc_cond_if = x86_64_enc_cond_if;
 		cu_enc_cond_else = x86_64_enc_cond_else;
+		cu_enc_cond_for = x86_64_enc_cond_for;
+		cu_enc_cond_post_for = x86_64_enc_cond_post_for;
 		cu_enc_add = x86_64_enc_add;
 		cu_enc_sub = x86_64_enc_sub;
 		cu_enc_inc = x86_64_enc_inc;
