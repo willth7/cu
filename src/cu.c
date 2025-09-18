@@ -500,7 +500,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 	uint8_t c = 0;					//comment flag
 	uint8_t char_flag = 0;			//character flag
 	uint8_t str_flag = 0;			//string flag
-	uint8_t for_flag = 0;			//for statement variable declaration flag
+	uint8_t for_flag[256] = {};		//for statement variable declaration flag
 	uint16_t str_n = 0;				//number of string immediates
 	uint16_t if_n = 0;				//number of if statements
 	uint16_t else_n = 0;			//number of else statements
@@ -535,6 +535,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 	uint8_t dref_src = 0;			//dereference source flag
 	uint8_t ref_src = 0;			//reference flag
 	uint8_t ret_dst = 0;			//return flag
+	uint8_t brk_dst = 0;			//break flag
 	uint8_t if_dst[256] = {};		//if statement flag
 	uint8_t else_dst[256] = {};		//else statament flag
 	uint8_t while_dst[256] = {};	//while statement flag
@@ -1044,6 +1045,9 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			cu_enc_func_ret(func_bin[braces_n], &(func_bn[braces_n]), count_stack(braces_n));
 			ret_dst = 0;
 		}
+		else if (brk_dst) {
+			brk_dst = 0;
+		}
 		else if (dref_dst) {
 			if (!stack_dst) {
 				cu_enc_str_dref_64(func_bin[braces_n], &(func_bn[braces_n]));
@@ -1146,7 +1150,11 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				printf("[%s, %lu] error: '%s' has not been declared\n", path, ln, lex);
 				*e = -1;
 			}
-			else if (key == 15) {
+			else if (key == 14) {
+				brk_dst = 1;
+				mod = 0;
+				key = 0;
+			}else if (key == 15) {
 				ret_dst = 1;
 				mod = 1;
 				key = 0;
@@ -1239,7 +1247,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			else {
 				if (for_dst[braces_n]) {
 					if (for_dst[braces_n] == 1) {
-						for_flag = 1;
+						for_flag[braces_n] = 1;
 					}
 					else {
 						printf("[%s, %lu] error: cannot declare variable here\n", path, ln, lex);
@@ -1747,6 +1755,9 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				next_str();
 			}
 			else if (li) { //function call
+				if (else_dst[braces_n]) {
+					end_cond();
+				}
 				op[prnths_n] = 25;
 				prnths_n = prnths_n + 1;
 				call_n = call_n + 1;
@@ -2010,6 +2021,10 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			if (li) {
 				next_str();
 			}
+			if (else_dst[braces_n]) {
+				printf("[%s, %lu] here\n", path, ln);
+				end_cond();
+			}
 			if (key || stack_dst) {
 				
 			}
@@ -2019,7 +2034,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				dec_stack(8); //size of return address
 			}
 			braces_n = braces_n - 1;
-			if (for_flag) {
+			if (for_flag[braces_n]) {
 				stack_n = stack_n - 1;
 				if (stack[stack_n].type == 4 || stack[stack_n].type == 8 || stack[stack_n].ref) {
 					dec_stack(8);
@@ -2037,7 +2052,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 					dec_stack(4);
 					cu_enc_inc_sp(func_bin[braces_n], &(func_bn[braces_n]), 4);
 				}
-				for_flag = 0;
+				for_flag[braces_n] = 0;
 			}
 		}
 	}
