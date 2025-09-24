@@ -12,7 +12,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-//   sub umbra alarum suarum
+//   soli deo gloria
 
 #include <stdint.h>
 #include <stdlib.h>

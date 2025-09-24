@@ -12,7 +12,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-//   sub umbra alarum suarum
+//   soli deo gloria
 
 void x86_64_enc_ent(uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*);
 
@@ -109,6 +109,8 @@ void x86_64_enc_func_call_64 (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, 
 void x86_64_enc_func_call_void (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, void (*inc_stack) (uint8_t), uint8_t, uint8_t*, uint8_t, uint16_t);
 
 void x86_64_enc_func_ret (uint8_t*, uint64_t*, uint16_t);
+
+void x86_64_enc_func_brk (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uint16_t);
 
 void x86_64_enc_inc_sp(uint8_t*, uint64_t*, uint16_t);
 

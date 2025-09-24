@@ -12,7 +12,7 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-//   sub umbra alarum suarum
+//   soli deo gloria
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -631,6 +631,18 @@ void x86_64_enc_func_ret(uint8_t* bin, uint64_t* bn, uint16_t sz) {
 		x86_64_enc_add_reg_imm(bin, bn, 52, sz); //add rsp, [sz]
 	}
 	x86_64_enc_ret(bin, bn);
+}
+
+void x86_64_enc_func_brk(uint8_t* bin, uint64_t* bn, struct au_sym_s* rel, uint64_t* reln, uint16_t sz) {
+	if (sz) { //removes argument stack
+		x86_64_enc_add_reg_imm(bin, bn, 52, sz); //add rsp, [sz]
+	}
+	
+	rel[*reln].addr = *bn;
+	rel[*reln].typ = 3;
+	*reln = *reln + 1;
+	
+	x86_64_enc_jmp(bin, bn, 256); //jmp [loop]
 }
 
 void x86_64_enc_inc_sp(uint8_t* bin, uint64_t* bn, uint16_t sz) {
