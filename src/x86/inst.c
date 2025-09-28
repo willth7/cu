@@ -15093,7 +15093,7 @@ void x86_64_enc_call(uint8_t* bin, uint64_t* bn, uint32_t k) {
 
 void x86_64_enc_call_reg(uint8_t* bin, uint64_t* bn, uint8_t r) {
 	x86_64_prfx_leg(bin, bn, 0, r);
-	x86_64_prfx_rex(bin, bn, r, 0, 0);
+	x86_64_prfx_rex(bin, bn, r, 0, r);
 	x86_64_inst_byt(bin, bn, 255); //op
 	x86_64_inst_mod(bin, bn, 3, r, 2); //modrm
 }

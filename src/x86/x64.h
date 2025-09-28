@@ -108,6 +108,16 @@ void x86_64_enc_func_call_64 (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, 
 
 void x86_64_enc_func_call_void (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, void (*inc_stack) (uint8_t), uint8_t, uint8_t*, uint8_t, uint16_t);
 
+void x86_64_enc_pnt_call_8 (uint8_t*, uint64_t*, void (*inc_stack) (uint8_t), uint8_t, uint8_t*, uint8_t, uint16_t);
+
+void x86_64_enc_pnt_call_16 (uint8_t*, uint64_t*, void (*inc_stack) (uint8_t), uint8_t, uint8_t*, uint8_t, uint16_t);
+
+void x86_64_enc_pnt_call_32 (uint8_t*, uint64_t*, void (*inc_stack) (uint8_t), uint8_t, uint8_t*, uint8_t, uint16_t);
+
+void x86_64_enc_pnt_call_64 (uint8_t*, uint64_t*, void (*inc_stack) (uint8_t), uint8_t, uint8_t*, uint8_t, uint16_t);
+
+void x86_64_enc_pnt_call_void (uint8_t*, uint64_t*, void (*inc_stack) (uint8_t), uint8_t, uint8_t*, uint8_t, uint16_t);
+
 void x86_64_enc_func_ret (uint8_t*, uint64_t*, uint16_t);
 
 void x86_64_enc_func_brk (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uint16_t);
