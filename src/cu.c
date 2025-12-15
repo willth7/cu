@@ -26,18 +26,19 @@
 
 /* todo
  
- - fix function pointers
+ - do more function pointer testing
+ - casting
+ 	- signed and unsigned integers
+	- function pointers
+	- arrays
+ - structs
  - arrays
 	- array declaration
  	- single and multi dimensional
  	- array loading
  	- array storing
  - structs
- - casting
- 	- signed and unsigned integers
-	- function pointers
-	- arrays
-	- structs
+ - pre-processor
  
 */
 
@@ -564,7 +565,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 	uint8_t func_dec = 0;			//function declaration flag
 	uint8_t para_dec = 0;			//parameter declaration flag
 	uint8_t array_dec = 0;			//array declaration flag
-	uint8_t func_pnt[256] = {};			//function pointer declaration flag
+	uint8_t func_pnt[256] = {};		//function pointer declaration flag
 	
 	for (uint16_t i = 0; i < 256; i++) {
 		func_bin[i] = calloc(1048576, 1);
@@ -598,7 +599,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 		uint16_t x = 0;
 		for (uint16_t i = stack_n - 1; i > 0; i--) {
 			if ((stack[i].scop == scop) && stack[i].flag != 3) {
-				if (stack[i].type == 4 || stack[i].type == 8 || stack[i].ref) {
+				if (stack[i].type == 4 || stack[i].type == 8 || stack[i].ref || (stack[i].flag == 2)) {
 					x = x + 8;
 				}
 				else if (stack[i].type == 1 || stack[i].type == 5) {
@@ -1403,7 +1404,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 	}
 	
 	for (uint64_t fi = 0; fi < fs.st_size; fi++) {
-		//printf("[%s, %lu] %c, %u\n", path, ln, fx[fi], func_pnt[prnths_n - 1]);
+		//printf("[%s, %lu] %c, %u\n", path, ln, fx[fi], func_pnt[prnths_n]);
 		
 		if (((fx[fi] >= 97 && fx[fi] <= 122) || (fx[fi] >= 48 && fx[fi] <= 57)  || (fx[fi] >= 65 && fx[fi] <= 90) || fx[fi] == '_' || (fx[fi] == '-' && fx[fi + 1] != ' ' && fx[fi + 1] != '-' && fx[fi + 1] != '-')) && !c && !char_flag && !str_flag) { //string
 			lex[li] = fx[fi];
@@ -1815,7 +1816,6 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 		}
 		else if ((fx[fi] == '(') && (fx[fi + 1] == '*') && key && !c && !char_flag && !str_flag) { //function pointer
 			func_pnt[prnths_n] = 2;
-			prnths_n = prnths_n + 1;
 			fi = fi + 1;
 		}
 		else if ((fx[fi] == '(') && !c && !char_flag && !str_flag) {
@@ -1886,8 +1886,9 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			}
 		}
 		else if ((fx[fi] == ')') && !c && !char_flag && !str_flag) { 
-			if (func_pnt[prnths_n - 1] == 2) {
-				func_pnt[prnths_n - 1] = 1;
+			if (func_pnt[prnths_n] == 2) {
+				func_pnt[prnths_n] = 1;
+				prnths_n = prnths_n + 1;
 			}
 			else if (prnths_n == 1 && for_dst[braces_n] == 3) {
 				if (li) {
