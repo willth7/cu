@@ -26,7 +26,7 @@
 
 /* todo
  
- - do more function pointer testing
+ - fix function pointer parameters
  - casting
  	- signed and unsigned integers
 	- function pointers
@@ -562,8 +562,8 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 	uint8_t reg_full[256] = {};		//register full flag
 	uint8_t call_n = 0;				//number of calls
 	
-	uint8_t func_dec = 0;			//function declaration flag
-	uint8_t para_dec = 0;			//parameter declaration flag
+	uint8_t func_dec[256] = {};		//function declaration flag
+	uint8_t para_dec[256] = {};		//parameter declaration flag
 	uint8_t array_dec = 0;			//array declaration flag
 	uint8_t func_pnt[256] = {};		//function pointer declaration flag
 	
@@ -599,16 +599,16 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 		uint16_t x = 0;
 		for (uint16_t i = stack_n - 1; i > 0; i--) {
 			if ((stack[i].scop == scop) && stack[i].flag != 3) {
-				if (stack[i].type == 4 || stack[i].type == 8 || stack[i].ref || (stack[i].flag == 2)) {
+				if ((stack[i].type == 4 || stack[i].type == 8 || stack[i].ref || (stack[i].flag == 2)) && stack[i].flag != 1) {
 					x = x + 8;
 				}
-				else if (stack[i].type == 1 || stack[i].type == 5) {
+				else if ((stack[i].type == 1 || stack[i].type == 5) && stack[i].flag != 1) {
 					x = x + 1;
 				}
-				else if (stack[i].type == 2 || stack[i].type == 6) {
+				else if ((stack[i].type == 2 || stack[i].type == 6) && stack[i].flag != 1) {
 					x = x + 2;
 				}
-				else if (stack[i].type == 3 || stack[i].type == 7) {
+				else if ((stack[i].type == 3 || stack[i].type == 7) && stack[i].flag != 1) {
 					x = x + 4;
 				}
 			}
@@ -1255,7 +1255,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				*e = -1;
 			}
 		}
-		else if (key && para_dec) { //parameter declaration
+		else if (key && para_dec[prnths_n]) { //parameter declaration
 			if (find_para(lex)) {
 				printf("[%s, %lu] error: parameter '%s' has already been declared\n", path, ln, lex);
 				*e = -1;
@@ -1291,7 +1291,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				key = 0;
 			}
 		}
-		else if (key && func_dec) { //function declaration
+		else if (key && func_dec[prnths_n - 1]) { //function declaration
 			if (find_stack(lex)) {
 				printf("[%s, %lu] error: '%s' has already been declared\n", path, ln, lex);
 				*e = -1;
@@ -1327,7 +1327,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				stack_n = stack_n + 1;
 				ref = 0;
 				key = 0;
-				para_dec = 1;
+				para_dec[prnths_n] = 1;
 			}
 		}
 		else if (key) { //variable declaration
@@ -1404,7 +1404,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 	}
 	
 	for (uint64_t fi = 0; fi < fs.st_size; fi++) {
-		//printf("[%s, %lu] %c, %u\n", path, ln, fx[fi], func_pnt[prnths_n]);
+		//printf("[%s, %lu] %c, %u\n", path, ln, fx[fi], key);
 		
 		if (((fx[fi] >= 97 && fx[fi] <= 122) || (fx[fi] >= 48 && fx[fi] <= 57)  || (fx[fi] >= 65 && fx[fi] <= 90) || fx[fi] == '_' || (fx[fi] == '-' && fx[fi + 1] != ' ' && fx[fi + 1] != '-' && fx[fi + 1] != '-')) && !c && !char_flag && !str_flag) { //string
 			lex[li] = fx[fi];
@@ -1729,10 +1729,10 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			}
 		}
 		else if ((fx[fi] == ',') && !c && !char_flag && !str_flag) { //next string (parameter)
-			if (para_dec && key && li) {
+			if (para_dec[prnths_n] && key && li) {
 				next_str();	
 			}
-			else if (para_dec) {
+			else if (para_dec[prnths_n]) {
 				printf("[%s, %lu] error: expected parameter\n", path, ln);
 				*e = -1;
 			}
@@ -1760,9 +1760,9 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				printf("[%s, %lu] error: expected parenthesis\n", path, ln);
 				*e = -1;
 			}
-			if (func_dec) {
+			if (func_dec[prnths_n]) {
 				rem_stack(braces_n + 1);
-				func_dec = 0;
+				func_dec[prnths_n] = 0;
 				func_pnt[prnths_n] = 0;
 				para_n = 0;
 			}
@@ -1825,7 +1825,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				*e = -1;
 			}
 			else if (func_pnt[prnths_n - 1] == 1) {
-				func_dec = 1;
+				func_dec[prnths_n - 1] = 1;
 				next_str();
 			}
 			else if (key == 10) { //if statement
@@ -1859,7 +1859,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				while_dst[braces_n] = 1;
 			}
 			else if (li && key) { //function declaration
-				func_dec = 1;
+				func_dec[prnths_n - 1] = 1;
 				next_str();
 			}
 			else if (li) { //function call
@@ -1922,7 +1922,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			else if (li) {
 				next_str();
 			}
-			if (para_dec) {
+			if (para_dec[prnths_n]) {
 				stack[(stack_n - 1) - para_n].mem = malloc(sizeof(struct cu_data_s) * (para_n));
 				stack[(stack_n - 1) - para_n].mem_n = para_n;
 				for (uint8_t i = 0; i < para_n; i++) {
@@ -1930,7 +1930,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 					stack[(stack_n - 1) - para_n].mem[i].indx = stack[(stack_n - para_n) + i].indx;
 					stack[(stack_n - 1) - para_n].mem[i].ref = stack[(stack_n - para_n) + i].ref;
 				}
-				para_dec = 0;
+				para_dec[prnths_n] = 0;
 			}
 			if (prnths_n == 0) {
 				printf("[%s, %lu] error: excess parenthesis\n", path, ln);
@@ -2117,13 +2117,13 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				printf("[%s, %lu] error: no prior if statement\n", path, ln);
 				*e = -1;
 			}
-			else if (func_dec) {
+			else if (func_dec[prnths_n]) {
 				if (func_pnt[prnths_n]) {
 					printf("[%s, %lu] error: cannot assign code while declaring a function pointer\n", path, ln);
 					*e = -1;
 				}
 				else {
-					func_dec = 0;
+					func_dec[prnths_n] = 0;
 					func_sym[braces_n][func_symn[braces_n]].str = malloc(stack[(stack_n - 1) - para_n].len);
 					memcpy(func_sym[braces_n][func_symn[braces_n]].str, stack[(stack_n - 1) - para_n].str, stack[(stack_n - 1) - para_n].len);
 					func_sym[braces_n][func_symn[braces_n]].len = stack[(stack_n - 1) - para_n].len;
