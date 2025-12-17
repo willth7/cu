@@ -26,7 +26,7 @@
 
 /* todo
  
- - fix function pointer parameters
+ - function pointers as parameters
  - casting
  	- signed and unsigned integers
 	- function pointers
@@ -1214,7 +1214,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			load_src(find_stack(lex));
 			adv_assign();
 		}
-		else if (!key && !stack_dst) { //variable assignment
+		else if (!key && (!stack_dst || (func_pnt[prnths_n - 1] == 1))) { //variable assignment
 			key = cu_str_key(lex);
 			
 			if (else_dst[braces_n] && !(if_dst[braces_n]) && (key != 10) && (key != 11)) {
