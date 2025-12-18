@@ -26,12 +26,10 @@
 
 /* todo
  
- - fix function parameters as pointers
  - casting
  	- signed and unsigned integers
 	- function pointers
 	- arrays
- - structs
  - arrays
 	- array declaration
  	- single and multi dimensional
@@ -1906,6 +1904,12 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 			}
 		}
 		else if ((fx[fi] == ')') && !c && !char_flag && !str_flag) {
+			if (func_dec[prnths_n]) {
+				rem_stack(braces_n + 1);
+				func_dec[prnths_n] = 0;
+				func_pnt[prnths_n] = 0;
+				para_n[prnths_n] = 0;
+			}
 			if (func_pnt[prnths_n] == 2) {
 				func_pnt[prnths_n] = 1;
 				prnths_n = prnths_n + 1;
