@@ -27,9 +27,7 @@
 /* todo
  
  - casting
- 	- signed and unsigned integers
-	- function pointers
-	- arrays
+	- pointers
  - arrays
 	- array declaration
  	- single and multi dimensional
@@ -54,13 +52,15 @@ struct au_sym_s {
 	uint8_t typ;
 };
 
-#include "x86/x64.h"
+#include "x86/x64_enc.h"
 
 void (*cu_writ) (uint8_t*, uint64_t, struct au_sym_s*, uint64_t, struct au_sym_s*, uint64_t, int8_t*);
 
 void (*cu_enc_ent) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*); 
 
 void (*cu_enc_exit) (uint8_t*, uint64_t*);
+
+
 
 void (*cu_enc_loc_ref) (uint8_t*, uint64_t*, void (*inc_stack) (uint8_t), uint8_t, uint32_t);
 
@@ -72,6 +72,8 @@ void (*cu_enc_loc_dec_32) (uint8_t*, uint64_t*);
 
 void (*cu_enc_loc_dec_64) (uint8_t*, uint64_t*);
 
+
+
 void (*cu_enc_loc_load_8) (uint8_t*, uint64_t*, void (*inc_stack) (uint8_t), uint8_t, uint32_t);
 
 void (*cu_enc_loc_load_16) (uint8_t*, uint64_t*, void (*inc_stack) (uint8_t), uint8_t, uint32_t);
@@ -80,6 +82,8 @@ void (*cu_enc_loc_load_32) (uint8_t*, uint64_t*, void (*inc_stack) (uint8_t), ui
 
 void (*cu_enc_loc_load_64) (uint8_t*, uint64_t*, void (*inc_stack) (uint8_t), uint8_t, uint32_t);
 
+
+
 void (*cu_enc_loc_str_8) (uint8_t*, uint64_t*, uint32_t);
 
 void (*cu_enc_loc_str_16) (uint8_t*, uint64_t*, uint32_t);
@@ -87,6 +91,8 @@ void (*cu_enc_loc_str_16) (uint8_t*, uint64_t*, uint32_t);
 void (*cu_enc_loc_str_32) (uint8_t*, uint64_t*, uint32_t);
 
 void (*cu_enc_loc_str_64) (uint8_t*, uint64_t*, uint32_t);
+
+
 
 void (*cu_enc_glo_ref) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, void (*inc_stack) (uint8_t), uint8_t, uint8_t*, uint8_t);
 
@@ -98,6 +104,8 @@ void (*cu_enc_glo_dec_32) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uin
 
 void (*cu_enc_glo_dec_64) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t*, uint8_t);
 
+
+
 void (*cu_enc_glo_load_8) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, void (*inc_stack) (uint8_t), uint8_t, uint8_t*, uint8_t);
 
 void (*cu_enc_glo_load_16) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, void (*inc_stack) (uint8_t), uint8_t, uint8_t*, uint8_t);
@@ -105,6 +113,8 @@ void (*cu_enc_glo_load_16) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, vo
 void (*cu_enc_glo_load_32) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, void (*inc_stack) (uint8_t), uint8_t, uint8_t*, uint8_t);
 
 void (*cu_enc_glo_load_64) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, void (*inc_stack) (uint8_t), uint8_t, uint8_t*, uint8_t);
+
+
 
 void (*cu_enc_glo_str_8) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t*, uint8_t);
 
@@ -114,6 +124,8 @@ void (*cu_enc_glo_str_32) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uin
 
 void (*cu_enc_glo_str_64) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uint8_t*, uint8_t);
 
+
+
 void (*cu_enc_load_dref_8) (uint8_t*, uint64_t*, uint8_t);
 
 void (*cu_enc_load_dref_16) (uint8_t*, uint64_t*, uint8_t);
@@ -122,6 +134,8 @@ void (*cu_enc_load_dref_32) (uint8_t*, uint64_t*, uint8_t);
 
 void (*cu_enc_load_dref_64) (uint8_t*, uint64_t*, uint8_t);
 
+
+
 void (*cu_enc_str_dref_8) (uint8_t*, uint64_t*);
 
 void (*cu_enc_str_dref_16) (uint8_t*, uint64_t*);
@@ -129,6 +143,8 @@ void (*cu_enc_str_dref_16) (uint8_t*, uint64_t*);
 void (*cu_enc_str_dref_32) (uint8_t*, uint64_t*);
 
 void (*cu_enc_str_dref_64) (uint8_t*, uint64_t*);
+
+
 
 void (*cu_enc_load_dref_8_inc) (uint8_t*, uint64_t*);
 
@@ -139,6 +155,8 @@ void (*cu_enc_load_dref_32_inc) (uint8_t*, uint64_t*);
 void (*cu_enc_load_dref_64_inc) (uint8_t*, uint64_t*);
 
 void (*cu_enc_load_imm) (uint8_t*, uint64_t*, void (*inc_stack) (uint8_t), uint8_t, uint64_t);
+
+
 
 void (*cu_enc_func_pre_call) (uint8_t*, uint64_t*, void (*inc_stack) (uint8_t), uint8_t, uint16_t);
 
@@ -152,6 +170,8 @@ void (*cu_enc_func_call_64) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, v
 
 void (*cu_enc_func_call_void) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, void (*inc_stack) (uint8_t), uint8_t, uint8_t*, uint8_t, uint16_t);
 
+
+
 void (*cu_enc_pnt_call_8) (uint8_t*, uint64_t*, void (*inc_stack) (uint8_t), uint8_t, uint8_t*, uint8_t, uint16_t);
 
 void (*cu_enc_pnt_call_16) (uint8_t*, uint64_t*, void (*inc_stack) (uint8_t), uint8_t, uint8_t*, uint8_t, uint16_t);
@@ -162,11 +182,15 @@ void (*cu_enc_pnt_call_64) (uint8_t*, uint64_t*, void (*inc_stack) (uint8_t), ui
 
 void (*cu_enc_pnt_call_void) (uint8_t*, uint64_t*, void (*inc_stack) (uint8_t), uint8_t, uint8_t*, uint8_t, uint16_t);
 
+
+
 void (*cu_enc_func_ret) (uint8_t*, uint64_t*, uint16_t);
 
 void (*cu_enc_func_brk) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*, uint16_t);
 
 void (*cu_enc_inc_sp) (uint8_t*, uint64_t*, uint16_t);
+
+
 
 void (*cu_enc_cond_if) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*);
 
@@ -175,6 +199,8 @@ void (*cu_enc_cond_else) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*);
 void (*cu_enc_cond_for) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*);
 
 void (*cu_enc_cond_post_for) (uint8_t*, uint64_t*, struct au_sym_s*, uint64_t*);
+
+
 
 void (*cu_enc_add) (uint8_t*, uint64_t*, void (*dec_stack) (uint8_t), uint8_t);
 
@@ -565,6 +591,8 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 	uint8_t array_dec = 0;			//array declaration flag
 	uint8_t func_pnt[256] = {};		//function pointer declaration flag
 	
+	uint8_t type[256] = {};			//data type 
+	
 	for (uint16_t i = 0; i < 256; i++) {
 		func_bin[i] = calloc(1048576, 1);
 		func_bn[i] = 0;
@@ -687,7 +715,19 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				}
 			}
 			else if (!stack[stack_src].scop) {
-				if (stack[stack_src].ref) {
+				if (type[prnths_n] == 1 || type[prnths_n] == 5) {
+					cu_enc_glo_load_8(func_bin[braces_n], &(func_bn[braces_n]), func_rel[braces_n], &(func_reln[braces_n]), inc_stack, reg[call_n], stack[stack_src].str, stack[stack_src].len);
+				}
+				else if (type[prnths_n] == 2 || type[prnths_n] == 6) {
+					cu_enc_glo_load_16(func_bin[braces_n], &(func_bn[braces_n]), func_rel[braces_n], &(func_reln[braces_n]), inc_stack, reg[call_n], stack[stack_src].str, stack[stack_src].len);
+				}
+				else if (type[prnths_n] == 3 || type[prnths_n] == 7) {
+					cu_enc_glo_load_32(func_bin[braces_n], &(func_bn[braces_n]), func_rel[braces_n], &(func_reln[braces_n]), inc_stack, reg[call_n], stack[stack_src].str, stack[stack_src].len);
+				}
+				else if (type[prnths_n] == 4 || type[prnths_n] == 8) {
+					cu_enc_glo_load_64(func_bin[braces_n], &(func_bn[braces_n]), func_rel[braces_n], &(func_reln[braces_n]), inc_stack, reg[call_n], stack[stack_src].str, stack[stack_src].len);
+				}
+				else if (stack[stack_src].ref) {
 					cu_enc_glo_load_64(func_bin[braces_n], &(func_bn[braces_n]), func_rel[braces_n], &(func_reln[braces_n]), inc_stack, reg[call_n], stack[stack_src].str, stack[stack_src].len);
 					if (mod == 0 && dref_dst && !stack_dst) {
 						stack_dst = stack_src;
@@ -715,7 +755,19 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				ref_src = 0;
 			}
 			else {
-				if (stack[stack_src].ref) {
+				if (type[prnths_n] == 1 || type[prnths_n] == 5) {
+					cu_enc_loc_load_8(func_bin[braces_n], &(func_bn[braces_n]), inc_stack, reg[call_n], stack[stack_src].indx);
+				}
+				else if (type[prnths_n] == 2 || type[prnths_n] == 6) {
+					cu_enc_loc_load_16(func_bin[braces_n], &(func_bn[braces_n]), inc_stack, reg[call_n], stack[stack_src].indx);
+				}
+				else if (type[prnths_n] == 3 || type[prnths_n] == 7) {
+					cu_enc_loc_load_32(func_bin[braces_n], &(func_bn[braces_n]), inc_stack, reg[call_n], stack[stack_src].indx);
+				}
+				else if (type[prnths_n] == 4 || type[prnths_n] == 8) {
+					cu_enc_loc_load_64(func_bin[braces_n], &(func_bn[braces_n]), inc_stack, reg[call_n], stack[stack_src].indx);
+				}
+				else if (stack[stack_src].ref) {
 					cu_enc_loc_load_64(func_bin[braces_n], &(func_bn[braces_n]), inc_stack, reg[call_n], stack[stack_src].indx);
 					if (mod == 0 && dref_dst && !stack_dst) {
 						stack_dst = stack_src;
@@ -883,6 +935,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				cu_enc_bit_not(func_bin[braces_n], &(func_bn[braces_n]), reg[call_n]);
 				reg_full[call_n] = 1;
 				op[prnths_n] = 0;
+				type[prnths_n] = 0;
 				prnths_n = prnths_n - 1;
 				adv_assign();
 			}
@@ -920,6 +973,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				cu_enc_log_not(func_bin[braces_n], &(func_bn[braces_n]), reg[call_n]);
 				reg_full[call_n] = 1;
 				op[prnths_n] = 0;
+				type[prnths_n] = 0;
 				prnths_n = prnths_n - 1;
 				adv_assign();
 			}
@@ -1006,12 +1060,14 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				}
 				reg_full[call_n] = 1;
 				op[prnths_n] = 0;
+				type[prnths_n] = 0;
 				prnths_n = prnths_n - 1;
 				adv_assign();
 			}
 			else if (op[prnths_n] == 24) {
 				reg[call_n] = reg[call_n] + 1;
 				op[prnths_n] = 0;
+				type[prnths_n] = 0;
 				prnths_n = prnths_n - 1;
 			}
 			else if (op[prnths_n] == 25) {
@@ -1412,7 +1468,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 	}
 	
 	for (uint64_t fi = 0; fi < fs.st_size; fi++) {
-		//printf("[%s, %lu] %c, %u\n", path, ln, fx[fi], para_dec[prnths_n]);
+		//printf("[%s, %lu] %c, %u\n", path, ln, fx[fi], type[prnths_n]);
 		/*for (uint8_t i = stack_n; i > 0; i--) {
 			printf("[%u, %u] %s, %u\n", ln, i - 1, stack[i - 1].str, stack[i - 1].scop);
 		}*/
@@ -1764,6 +1820,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				}
 				arg_n[call_n] = arg_n[call_n] + 1;
 			}
+			type[prnths_n] = 0;
 			lex[0] = 0;
 			li = 0;
 		}
@@ -1789,6 +1846,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				*e = -1;
 				func_pnt[prnths_n] = 0;
 			}
+			type[prnths_n] = 0;
 			stack_dst = 0;
 			if (for_dst[braces_n] == 1) {
 				for_dst[braces_n] = 2;
@@ -1910,7 +1968,12 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				func_pnt[prnths_n] = 0;
 				para_n[prnths_n] = 0;
 			}
-			if (func_pnt[prnths_n] == 2) {
+			if (li && cu_str_key(lex)) { //casting
+				type[prnths_n - 1] = cu_str_key(lex);
+				lex[0] = 0;
+				li = 0;
+			}	
+			else if (func_pnt[prnths_n] == 2) {
 				func_pnt[prnths_n] = 1;
 				prnths_n = prnths_n + 1;
 			}
@@ -1929,6 +1992,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 					adv_assign();
 					load_arg();
 				}
+				type[prnths_n] = 0;
 				prnths_n = prnths_n - 1;
 				arg_n[call_n] = arg_n[call_n] + 1;
 				lex[0] = 0;
@@ -1940,6 +2004,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 					load_arg();
 					arg_n[call_n] = arg_n[call_n] + 1;
 				}
+				type[prnths_n] = 0;
 				prnths_n = prnths_n - 1;
 				adv_assign();
 			}
@@ -1969,6 +2034,7 @@ void cu_lex(uint8_t* bin, uint64_t* bn, int8_t* path, struct au_sym_s* sym, uint
 				*e = -1;
 			}
 			else {
+				type[prnths_n] = 0;
 				prnths_n = prnths_n - 1;
 			}
 			adv_assign();
@@ -2328,63 +2394,77 @@ int8_t main(int32_t argc, int8_t** argv) {
 	else if (!strcmp(argv[1], "x86-64")) {
 		cu_enc_ent = x86_64_enc_ent;
 		cu_enc_exit = x86_64_enc_exit;
+		
 		cu_enc_loc_ref = x86_64_enc_loc_ref;
 		cu_enc_loc_dec_8 = x86_64_enc_loc_dec_8;
 		cu_enc_loc_dec_16 = x86_64_enc_loc_dec_16;
 		cu_enc_loc_dec_32 = x86_64_enc_loc_dec_32;
 		cu_enc_loc_dec_64 = x86_64_enc_loc_dec_64;
+		
 		cu_enc_loc_load_8 = x86_64_enc_loc_load_8;
 		cu_enc_loc_load_16 = x86_64_enc_loc_load_16;
 		cu_enc_loc_load_32 = x86_64_enc_loc_load_32;
 		cu_enc_loc_load_64 = x86_64_enc_loc_load_64;
+		
 		cu_enc_loc_str_8 = x86_64_enc_loc_str_8;
 		cu_enc_loc_str_16 = x86_64_enc_loc_str_16;
 		cu_enc_loc_str_32 = x86_64_enc_loc_str_32;
 		cu_enc_loc_str_64 = x86_64_enc_loc_str_64;
+		
 		cu_enc_glo_ref = x86_64_enc_glo_ref;
 		cu_enc_glo_dec_8 = x86_64_enc_glo_dec_8;
 		cu_enc_glo_dec_16 = x86_64_enc_glo_dec_16;
 		cu_enc_glo_dec_32 = x86_64_enc_glo_dec_32;
 		cu_enc_glo_dec_64 = x86_64_enc_glo_dec_64;
+		
 		cu_enc_glo_load_8 = x86_64_enc_glo_load_8;
 		cu_enc_glo_load_16 = x86_64_enc_glo_load_16;
 		cu_enc_glo_load_32 = x86_64_enc_glo_load_32;
 		cu_enc_glo_load_64 = x86_64_enc_glo_load_64;
+		
 		cu_enc_glo_str_8 = x86_64_enc_glo_str_8;
 		cu_enc_glo_str_16 = x86_64_enc_glo_str_16;
 		cu_enc_glo_str_32 = x86_64_enc_glo_str_32;
 		cu_enc_glo_str_64 = x86_64_enc_glo_str_64;
+		
 		cu_enc_load_dref_8 = x86_64_enc_load_dref_8;
 		cu_enc_load_dref_16 = x86_64_enc_load_dref_16;
 		cu_enc_load_dref_32 = x86_64_enc_load_dref_32;
 		cu_enc_load_dref_64 = x86_64_enc_load_dref_64;
+		
 		cu_enc_str_dref_8 = x86_64_enc_str_dref_8;
 		cu_enc_str_dref_16 = x86_64_enc_str_dref_16;
 		cu_enc_str_dref_32 = x86_64_enc_str_dref_32;
 		cu_enc_str_dref_64 = x86_64_enc_str_dref_64;
+		
 		cu_enc_load_dref_8_inc = x86_64_enc_load_dref_8_inc;
 		cu_enc_load_dref_16_inc = x86_64_enc_load_dref_16_inc;
 		cu_enc_load_dref_32_inc = x86_64_enc_load_dref_32_inc;
 		cu_enc_load_dref_64_inc = x86_64_enc_load_dref_64_inc;
 		cu_enc_load_imm = x86_64_enc_load_imm;
+		
 		cu_enc_func_pre_call = x86_64_enc_func_pre_call;
 		cu_enc_func_call_8 = x86_64_enc_func_call_8;
 		cu_enc_func_call_16 = x86_64_enc_func_call_16;
 		cu_enc_func_call_32 = x86_64_enc_func_call_32;
 		cu_enc_func_call_64 = x86_64_enc_func_call_64;
 		cu_enc_func_call_void = x86_64_enc_func_call_void;
+		
 		cu_enc_pnt_call_8 = x86_64_enc_pnt_call_8;
 		cu_enc_pnt_call_16 = x86_64_enc_pnt_call_16;
 		cu_enc_pnt_call_32 = x86_64_enc_pnt_call_32;
 		cu_enc_pnt_call_64 = x86_64_enc_pnt_call_64;
 		cu_enc_pnt_call_void = x86_64_enc_pnt_call_void;
+		
 		cu_enc_func_ret = x86_64_enc_func_ret;
 		cu_enc_func_brk = x86_64_enc_func_brk;
 		cu_enc_inc_sp = x86_64_enc_inc_sp;
+		
 		cu_enc_cond_if = x86_64_enc_cond_if;
 		cu_enc_cond_else = x86_64_enc_cond_else;
 		cu_enc_cond_for = x86_64_enc_cond_for;
 		cu_enc_cond_post_for = x86_64_enc_cond_post_for;
+		
 		cu_enc_add = x86_64_enc_add;
 		cu_enc_sub = x86_64_enc_sub;
 		cu_enc_inc = x86_64_enc_inc;

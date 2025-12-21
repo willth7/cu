@@ -24,7 +24,7 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 
-#include "inst.h"
+#include "x64_inst.h"
 
 struct au_sym_s {
 	uint8_t* str;
